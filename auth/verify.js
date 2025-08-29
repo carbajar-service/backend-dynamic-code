@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config/index.js");
 const userService = require("../services/user.services.js");
+const staffService = require("../services/staff.services.js");
 const adminModel = require("../models/admin.model.js");
 const logger = require("../utils/logs.js");
 const AppError = require("../utils/appError.js")
@@ -23,15 +24,21 @@ module.exports.verifyJWT = catchError(async (req, _, next) => {
 
         // Check if the decoded ID exists in the user collection
         const userPromise = userService.findOneRecord(decodedToken?._id);
+        const staffPromise = staffService.findOneRecord(decodedToken?._id);
         // Check if the decoded ID exists in the admin collection
         const adminPromise = adminModel.findOne({ _id: decodedToken?._id });
 
-        const [user, admin] = await Promise.all([userPromise, adminPromise]);
+        const [user, admin, staff] = await Promise.all([userPromise, adminPromise, staffPromise]);
 
         if (user) {
             logger.info(`User found: ${JSON.stringify(user)}`);
             req.user = user;
             req.userId = user._id;
+        }
+        if (staff) {
+            logger.info(`User found: ${JSON.stringify(staff)}`);
+            req.staff = staff;
+            req.userId = staff._id;
         }
 
         if (admin) {
@@ -41,7 +48,7 @@ module.exports.verifyJWT = catchError(async (req, _, next) => {
         }
 
         // If neither user nor admin is found, throw an error
-        if (!user && !admin) {
+        if (!user && !admin && !staff) {
             logger.warn("No user or admin found for token");
             throw new AppError(401, "Invalid Access Token");
         }

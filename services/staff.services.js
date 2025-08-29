@@ -122,3 +122,8 @@ module.exports.refreshOtp = async (body) => {
     record.phoneOTP = undefined;
     return record;
 };
+
+module.exports.findOneRecord = async (condition, populateQuery) => {
+    const record = await staffModel.findOne(condition).populate(populateQuery);
+    return record;
+};
