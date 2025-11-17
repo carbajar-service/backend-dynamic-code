@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const paginate = require("mongoose-paginate-v2");
 const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
 
-const dealerSchema = new mongoose.Schema(
+const driverSchema = new mongoose.Schema(
     {
         username: { type: String, required: true, unique: true },
         fullName: { type: String },
@@ -13,13 +13,13 @@ const dealerSchema = new mongoose.Schema(
         password: { type: String },
         accountType: {
             type: String,
-            default: "dealer",
+            default: "driver",
         },
         isDealer: { type: Boolean, required: true },
         profilePicture: { type: String },
         collectionName: {
             type: String,
-            default: "dealer",
+            default: "driver",
         },
     },
     {
@@ -27,7 +27,7 @@ const dealerSchema = new mongoose.Schema(
     }
 );
 
-dealerSchema.plugin(paginate);
-dealerSchema.plugin(aggregatePaginate);
+driverSchema.plugin(paginate);
+driverSchema.plugin(aggregatePaginate);
 
-module.exports = mongoose.model("dealer", dealerSchema);
+module.exports = mongoose.model("driver", driverSchema);
