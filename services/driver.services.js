@@ -29,7 +29,7 @@ module.exports.driverRegister = async (body) => {
         email: body.email,
         phoneNumber: body.phoneNumber,
         password: hashedPassword,
-        isdriver: true,
+        isDriver: true,
         phoneOTP: generateOTP(),
     };
     logger.info(payload);

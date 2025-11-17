@@ -15,7 +15,7 @@ const driverSchema = new mongoose.Schema(
             type: String,
             default: "driver",
         },
-        isDealer: { type: Boolean, required: true },
+        isDriver: { type: Boolean, required: true },
         profilePicture: { type: String },
         collectionName: {
             type: String,
