@@ -1,4 +1,4 @@
-name: Deploy Backend (Sequential Versioning)
+name: Deploy Backend (Auto Versioning)
 
 on:
   push:
@@ -12,7 +12,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Sequential versioning
       - name: Set Sequential Version
         run: |
           if [ ! -f .version ]; then echo 0 > .version; fi
@@ -53,26 +52,27 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd /root/devops &&
-
-            echo '📦 Load new Docker image' &&
+            
+            echo '📦 Loading image ${{ env.IMAGE_TAG }}...' &&
             docker load -i carbagar_${{ env.IMAGE_TAG }}.tar &&
 
-            echo '🗑 Stop and remove old container' &&
-            docker-compose down --rmi all --volumes --remove-orphans || true &&
+            echo '🛑 Stopping & cleaning old containers...' &&
+            docker-compose down --volumes --remove-orphans || true &&
 
-            echo '🚀 Starting services using image ${{ env.IMAGE_TAG }}' &&
+            echo '🚀 Starting new version: ${{ env.IMAGE_TAG }}...' &&
             IMAGE_TAG=${{ env.IMAGE_TAG }} docker-compose up -d &&
 
-            echo '🔍 Running health check...' &&
-            sleep 10 &&
+            echo '⏳ Waiting for Health Check...' &&
+            for i in {1..20}; do
+              if docker ps --filter 'health=healthy' | grep -q carbagar_api; then
+                echo '🎉 Healthy Deployment Completed!' &&
+                docker image prune -f &&
+                exit 0
+              fi
+              sleep 3
+            done
 
-            if docker ps --filter 'health=healthy' | grep -q carbagar; then
-              echo '🎉 Healthy Deployment!' &&
-              docker image prune -f &&
-              find /root/devops -name 'carbagar_v*.tar' -mtime +2 -delete
-            else
-              echo '❌ Deployment failed — rolling back' &&
-              git checkout HEAD~1 docker-compose.yml &&
-              docker-compose up -d
-            fi
+            echo '❌ Deployment failed! Rolling back...' &&
+            docker-compose down &&
+            exit 1
           "
