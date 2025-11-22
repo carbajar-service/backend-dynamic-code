@@ -84,7 +84,7 @@ module.exports.driverLogin = async (body) => {
         await driverModel.findOneAndUpdate(
             { _id: driver._id },
             // { phoneOTP: null, },
-           { $unset: { phoneOTP: "" }}
+            { $unset: { phoneOTP: "" } }
         );
     }
 
@@ -111,7 +111,7 @@ module.exports.refreshOtp = async (body) => {
     const driver = await driverModel.findOne(filter);
     if (!driver) {
         throw new AppError(404, "Your not a existing driver.Register first!");
-    }const option = { new: true };
+    } const option = { new: true };
     const record = await driverModel.findOneAndUpdate(
         { _id: driver._id },
         { phoneOTP: generateOTP() },
@@ -120,5 +120,7 @@ module.exports.refreshOtp = async (body) => {
     await sms.smsOTPV2(record);
     logger.info(record);
     record.phoneOTP = undefined;
-    return record;
+    // return record;
+    const d = `Successfully refresh OTP sent to ${body.phoneNumber}!`
+    return d;
 };
