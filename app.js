@@ -23,10 +23,10 @@ routes(app)
 app.get("/health", catchError(async (req, res) => {
     const healthPayload = {
         projectName: 'Dynamic Backend Project',
-        frontEnd: 'Angular',
         backEnd: 'NodeJs',
         dataBase: 'MongoDB',
-        container: 'Docker Container....'
+        container: 'Docker Container....',
+        CICD: "Git Hub"
     }
     return responser.send(200, `${healthPayload.projectName} Health Check Up`, req, res, healthPayload)
 }))
