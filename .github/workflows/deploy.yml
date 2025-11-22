@@ -1,4 +1,4 @@
-name: Deploy Backend
+name: Deploy Backend (Sequential Versioning)
 
 on:
   push:
@@ -9,14 +9,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
+      # Sequential versioning
+      - name: Set Sequential Version
+        run: |
+          if [ ! -f .version ]; then echo 0 > .version; fi
+          VERSION=$(cat .version)
+          VERSION=$((VERSION + 1))
+          echo $VERSION > .version
+          echo "IMAGE_TAG=v$VERSION" >> $GITHUB_ENV
+          git config --global user.email "github@actions.com"
+          git config --global user.name "GitHub Actions"
+          git add .version
+          git commit -m "Increment version to v$VERSION" || true
+          git push || true
+
       - name: Build Docker Image
-        run: docker build -t carbagar:v1 .
+        run: docker build -t carbagar:${{ env.IMAGE_TAG }} .
 
       - name: Save Docker Image as TAR
-        run: docker save -o carbagar_v1.tar carbagar:v1
+        run: docker save -o carbagar_${{ env.IMAGE_TAG }}.tar carbagar:${{ env.IMAGE_TAG }}
 
       - name: Install SSH & Rsync
         run: sudo apt-get install -y openssh-client rsync
@@ -32,15 +46,32 @@ jobs:
 
       - name: Upload TAR to VPS
         run: |
-          rsync -avz carbagar_v1.tar ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/devops/
+          rsync -avz carbagar_${{ env.IMAGE_TAG }}.tar \
+          ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/devops/
 
       - name: Deploy on VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd /root/devops &&
-            docker-compose down || true &&
-            docker rmi -f carbagar:v1 || true &&
-            docker load -i /root/devops/carbagar_v1.tar &&
-            docker-compose up -d &&
-            echo '🚀 Deployment Success!'
+            echo '📦 Load new image...' &&
+            docker load -i carbagar_${{ env.IMAGE_TAG }}.tar &&
+
+            echo '🚀 Deploying carbagar:${{ env.IMAGE_TAG }}' &&
+            sed -i \"s|image: carbagar:.*|image: carbagar:${{ env.IMAGE_TAG }}|\" docker-compose.yml &&
+
+            docker-compose up -d --build &&
+
+            echo '🔍 Checking health...' &&
+            sleep 10 &&
+
+            if docker ps --filter 'health=healthy' | grep -q carbagar; then
+              echo '🎉 API is Healthy!' &&
+              echo '🧹 Cleaning old images & tar files...' &&
+              docker image prune -f &&
+              find /root/devops -name 'carbagar_v*.tar' -mtime +2 -delete
+            else
+              echo '❌ New version unhealthy! Rolling back…' &&
+              git checkout HEAD~1 docker-compose.yml &&
+              docker-compose up -d
+            fi
           "

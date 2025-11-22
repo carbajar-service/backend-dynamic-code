@@ -1,12 +1,12 @@
 version: '3.2'
-services:
 
+services:
 #########################################
-# node core api instances
+# node core api instance
 #########################################
   api:
-    image: carbagar:v1
-    container_name: carbagar_apis
+    image: carbagar:${IMAGE_TAG}
+    container_name: carbagar_api_${IMAGE_TAG}
     restart: always
     env_file:
       - .env
@@ -16,15 +16,13 @@ services:
       test: ["CMD", "curl", "-f", "-X", "GET", "http://localhost:4001/health"]
       interval: 30s
       timeout: 10s
-      retries: 3             
+      retries: 3
     networks:
-      - app-network      
+      - app-network
 
 #########################################
 # networks
-######################################### 
-
+#########################################
 networks:
   app-network:
     driver: bridge
-    
