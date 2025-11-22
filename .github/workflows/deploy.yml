@@ -2,7 +2,7 @@ name: Deploy Backend
 
 on:
   push:
-    branches: ["main"] # Update if your branch name is different
+    branches: ["main"]
 
 jobs:
   deploy:
@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install SSH client
-        run: sudo apt-get install -y openssh-client rsync
+        run: sudo apt-get install -y openssh-client
 
       - name: Add SSH Key
         uses: webfactory/ssh-agent@v0.5.3
@@ -21,23 +21,21 @@ jobs:
           ssh-private-key: |
             ${{ secrets.VPS_KEY }}
 
-      - name: Copy Files to VPS
+      - name: Add VPS to known_hosts
         run: |
-          rsync -avz --exclude '.git' ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy via Docker Compose
+      - name: Deploy Backend on VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd /root/devops &&
             echo '🛑 Stopping running containers...' &&
             docker compose down || true &&
-            
             echo '🧹 Removing old image...' &&
             docker rmi -f carbagar:v1 || true &&
-            
-            echo '📦 Loading new image tar...' &&
+            echo '📦 Loading new image...' &&
             docker load -i /root/devops/carbagar_v1.tar &&
-            
-            echo '🚀 Starting containers...' &&
-            docker compose up -d
+            echo '🚀 Starting services...' &&
+            docker compose up -d &&
+            echo '🎉 Deployment Success!'
           "
