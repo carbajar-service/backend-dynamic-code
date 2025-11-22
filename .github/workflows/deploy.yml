@@ -53,24 +53,25 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd /root/devops &&
-            echo '📦 Load new image...' &&
+
+            echo '📦 Load new Docker image' &&
             docker load -i carbagar_${{ env.IMAGE_TAG }}.tar &&
 
-            echo '🚀 Deploying carbagar:${{ env.IMAGE_TAG }}' &&
-            sed -i \"s|image: carbagar:.*|image: carbagar:${{ env.IMAGE_TAG }}|\" docker-compose.yml &&
+            echo '🗑 Stop and remove old container' &&
+            docker-compose down --rmi all --volumes --remove-orphans || true &&
 
-            docker-compose up -d --build &&
+            echo '🚀 Starting services using image ${{ env.IMAGE_TAG }}' &&
+            IMAGE_TAG=${{ env.IMAGE_TAG }} docker-compose up -d &&
 
-            echo '🔍 Checking health...' &&
+            echo '🔍 Running health check...' &&
             sleep 10 &&
 
             if docker ps --filter 'health=healthy' | grep -q carbagar; then
-              echo '🎉 API is Healthy!' &&
-              echo '🧹 Cleaning old images & tar files...' &&
+              echo '🎉 Healthy Deployment!' &&
               docker image prune -f &&
               find /root/devops -name 'carbagar_v*.tar' -mtime +2 -delete
             else
-              echo '❌ New version unhealthy! Rolling back…' &&
+              echo '❌ Deployment failed — rolling back' &&
               git checkout HEAD~1 docker-compose.yml &&
               docker-compose up -d
             fi
