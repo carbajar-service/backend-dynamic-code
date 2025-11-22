@@ -28,7 +28,16 @@ jobs:
       - name: Deploy via Docker Compose
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
-            cd ${{ secrets.VPS_PATH }} &&
-            docker compose down &&
-            docker compose up -d --build
+            cd /root/devops &&
+            echo '🛑 Stopping running containers...' &&
+            docker compose down || true &&
+            
+            echo '🧹 Removing old image...' &&
+            docker rmi -f carbagar:v1 || true &&
+            
+            echo '📦 Loading new image tar...' &&
+            docker load -i /root/devops/carbagar_v1.tar &&
+            
+            echo '🚀 Starting containers...' &&
+            docker compose up -d
           "
