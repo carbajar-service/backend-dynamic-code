@@ -30,12 +30,12 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd /root/devops &&
             echo '🛑 Stopping running containers...' &&
-            docker compose down || true &&
+            docker-compose down || true &&
             echo '🧹 Removing old image...' &&
             docker rmi -f carbagar:v1 || true &&
             echo '📦 Loading new image...' &&
             docker load -i /root/devops/carbagar_v1.tar &&
             echo '🚀 Starting services...' &&
-            docker compose up -d &&
+            docker-compose up -d &&
             echo '🎉 Deployment Success!'
           "
