@@ -7,6 +7,7 @@ const factoryRouter = require("./factory");
 const pdfRoutes = require("./pdfRoutes");
 const accountDriverRouter = require("./accountDriver");
 const walletRouter = require("./wallet");
+const leadRouter = require("./lead");
 
 const routes = (app) => {
   app.use("/auth", authRouter);
@@ -18,6 +19,7 @@ const routes = (app) => {
   app.use("/pdf", pdfRoutes);
   app.use("/driver-account", accountDriverRouter);
   app.use("/wallet", walletRouter);
+  app.use("/lead", leadRouter);
 };
 
 module.exports = routes;

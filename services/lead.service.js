@@ -37,7 +37,7 @@ module.exports.generateLeadId = () => {
 };
 
 // Create Lead
-module.exports.createLead = async (body, loggedInUser) => {
+module.exports.createLead = async (body) => {
     logger.info("START: Creating Lead");
     const requiredFields = [
         "tripType",
@@ -61,8 +61,9 @@ module.exports.createLead = async (body, loggedInUser) => {
         userCity: body.userCity,
         adminSeen: false,
         leadStatus: "NEW-LEAD",
-        createdBy: loggedInUser?._id,
-        updatedBy: loggedInUser?._id,
+        createdBy: body.userId,
+        updatedBy: body.userId,
+        userId: body.userId,
         uniqueLeadName: this.generateLeadId(),
     };
     const record = await this.createRecord(payloadData);
@@ -87,12 +88,19 @@ module.exports.getMyLeads = async (loggedInUser, query) => {
         $and: [{ createdBy: loggedInUser?._id }, { userId: loggedInUser?._id }],
         // TODO 
     };
+    const populateQuery = [
+        { path: "userId", select: ["_id", "username", "accountType", "phoneNumber"] },
+        { path: "createdBy", select: ["_id", "username", "accountType"] },
+        { path: "updatedBy", select: ["_id", "username", "accountType"] }
+    ];
     // Fetch paginated results
     const result = await LeadModel
         .find(condition)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize)
+        .populate(populateQuery)
+        .select("-__v")
         .lean();
 
     // Count total matching documents
@@ -183,7 +191,6 @@ module.exports.updateLead = async (leadId, body, loggedInUser) => {
     logger.info(`Lead Updated: ${leadId}`);
     return updatedLead;
 };
-
 
 // Update Lead Status
 module.exports.updateLeadStatus = async (leadId, status, user) => {

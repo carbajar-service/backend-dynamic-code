@@ -19,10 +19,10 @@ const accountUserSchema = new schema(
         },
         reasonForRejection: { type: String },
         profileCompleted: { type: Boolean, default: false },
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true },
         walletId: { type: schema.Types.ObjectId, ref: "wallet", },
-        createdBy: { type: schema.Types.ObjectId, ref: "user" },
-        updatedBy: { type: schema.Types.ObjectId, ref: "user" },
+        createdBy: { type: schema.Types.ObjectId, ref: "users" },
+        updatedBy: { type: schema.Types.ObjectId, ref: "users" },
     },
     { timestamps: true }
 );

@@ -2,10 +2,11 @@ const mongoose = require("mongoose");
 const schema = mongoose.Schema;
 const paginate = require("mongoose-paginate-v2");
 const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
+const user = require("./user.model");
 
 const leadSchema = new schema(
     {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
         tripType: { type: String, enum: ["One Way", "Round Trip"], required: true },
         locations: {
             type: [String], // Array of locations
@@ -16,7 +17,7 @@ const leadSchema = new schema(
         },
         totalKm: { type: String },
         totalAmount: { type: Number, default: 0 },
-        vehicleType: { type: String, enum: ["SUV", "Sedan", "Hatchback"] },
+        vehicleType: { type: String },//, enum: ["SUV", "Sedan", "Hatchback"] 
         pickUpDate: { type: Date, required: true },
         pickUpTime: { type: Date },
         userCity: { type: String },
@@ -28,13 +29,12 @@ const leadSchema = new schema(
             default: "NEW-LEAD"
         },
         uniqueLeadName: { type: String, unique: true },
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
-        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
     },
     { timestamps: true }
 );
 
-leadSchema.index({ uniqueLeadName: 1 }, { unique: true });
 leadSchema.plugin(paginate);
 leadSchema.plugin(aggregatePaginate);
 
