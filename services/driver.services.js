@@ -24,12 +24,10 @@ module.exports.driverRegister = async (body) => {
 
     const hashedPassword = bcrypt.hashSync(body.password, 10);
     const payload = {
-        username: generateUniqueUsername('driver'),
-        fullName: body.fullName,
+        username: generateUniqueUsername('DRI'),
         email: body.email,
-        phoneNumber: body.phoneNumber,
+        phoneNumber: Number(body.phoneNumber),
         password: hashedPassword,
-        isDriver: true,
         phoneOTP: generateOTP(),
     };
     logger.info(payload);
@@ -40,6 +38,7 @@ module.exports.driverRegister = async (body) => {
     return driver
 };
 
+// DriverLogin
 module.exports.driverLogin = async (body) => {
     logger.info(`Login service started`);
 
@@ -96,7 +95,6 @@ module.exports.driverLogin = async (body) => {
         _id: driver._id,
         username: driver.username,
         email: driver.email,
-        fullName: driver.fullName,
         accountType: driver.accountType,
         accessToken,
         refreshToken,
@@ -105,6 +103,7 @@ module.exports.driverLogin = async (body) => {
     return record;
 };
 
+// refreshOTP
 module.exports.refreshOtp = async (body) => {
     logger.info("Refresh service Starting");
     const filter = { phoneNumber: body.phoneNumber };
@@ -124,3 +123,5 @@ module.exports.refreshOtp = async (body) => {
     const d = `Successfully refresh OTP sent to ${body.phoneNumber}!`
     return d;
 };
+
+// get DriverProfile

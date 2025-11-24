@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config/index.js");
-const userService = require("../services/user.services.js");
-const staffService = require("../services/staff.services.js");
+const userModel = require("../models/user.model.js");
+const staffModel = require("../models/staff.model.js");
 const adminModel = require("../models/admin.model.js");
 const driverModel = require("../models/driver.model.js");
 const logger = require("../utils/logs.js");
@@ -9,61 +9,69 @@ const AppError = require("../utils/appError.js")
 const { catchError } = require("../utils/catchError.js")
 
 module.exports.verifyJWT = catchError(async (req, _, next) => {
-    logger.info(`Checking Jwt Middleware`);
+    logger.info("Checking JWT Middleware");
 
     try {
         const token = req.header("Authorization")?.replace("Bearer ", "");
-        if (!token) {
-            logger.warn("No token provided in Authorization header");
-            throw new AppError(401, "Unauthorized request");
-        }
+        if (!token) throw new AppError(401, "Unauthorized request");
 
-        logger.info(`Token received: ${token}`);
         const decodedToken = jwt.verify(token, config.JWT_SECRET);
+        const userId = decodedToken?.id;
+        if (!userId) throw new AppError(401, "Invalid Token Payload");
 
-        logger.info(`Decoded token: ${JSON.stringify(decodedToken)}`);
+        const select = { username: 1, _id: 1, accountType: 1 };
 
-        // Check if the decoded ID exists in the user collection
-        const userPromise = userService.findOneRecord(decodedToken?._id);
-        const staffPromise = staffService.findOneRecord(decodedToken?._id);
-        const driverPromise = driverModel.findOne({ _id: decodedToken?._id });
-        // Check if the decoded ID exists in the admin collection
-        const adminPromise = adminModel.findOne({ _id: decodedToken?._id });
+        const roles = [
+            { model: userModel, key: "user" },
+            { model: adminModel, key: "admin" },
+            { model: staffModel, key: "staff" },
+            { model: driverModel, key: "driver" },
+        ];
 
-        const [user, admin, staff, driver] = await Promise.all([userPromise, adminPromise, staffPromise, driverPromise]);
+        for (const role of roles) {
+            const result = await role.model.findOne({ _id: userId }, select);
+            if (result) {
+                req[role.key] = result;
+                req[`${role.key}Id`] = result._id;
 
-        if (user) {
-            logger.info(`User found: ${JSON.stringify(user)}`);
-            req.user = user;
-            req.userId = user._id;
-        }
-        if (staff) {
-            logger.info(`User found: ${JSON.stringify(staff)}`);
-            req.staff = staff;
-            req.userId = staff._id;
-        }
-
-        if (admin) {
-            logger.info(`Admin found: ${JSON.stringify(admin)}`);
-            req.admin = admin;
-            req.userId = admin._id; // Using userId for uniformity
-        }
-        if (driver) {
-            logger.info(`Driver found: ${JSON.stringify(driver)}`);
-            req.driver = driver;
-            req.userId = driver._id; // Using userId for uniformity
+                logger.info(`Authenticated as ${role.key}`);
+                return next();
+            }
         }
 
-        // If neither user nor admin is found, throw an error
-        if (!user && !admin && !staff && !driver) {
-            logger.warn("No user or admin found for token");
-            throw new AppError(401, "Invalid Access Token");
-        }
-
-        // Proceed to the next middleware
-        next();
+        throw new AppError(401, "Invalid Access Token");
     } catch (error) {
-        logger.error("JWT Verification Failed:", error);
-        throw new AppError(401, error?.message || "Invalid access token");
+        logger.error("JWT Auth Failed:", error);
+        throw new AppError(401, error?.message || "Authentication Failed");
     }
 });
+
+module.exports.authorizePermissions = (...allowedRoles) => {
+    return (req, res, next) => {
+        try {
+            // Pick whichever account type exists on request
+            const actor = req.user || req.staff || req.admin || req.driver || null;
+            if (!actor || !actor.accountType) {
+                return res.status(403).json({
+                    message: "Access Denied: Role not found in token.",
+                });
+            }
+
+            // Validate allowed roles
+            if (!allowedRoles.includes(actor.accountType)) {
+                return res.status(403).json({
+                    message: `Access Denied: Only [${allowedRoles.join(
+                        ", "
+                    )}] allowed. Your role: ${actor.accountType}`,
+                });
+            }
+
+            next(); // Authorized
+        } catch (error) {
+            return res.status(500).json({
+                message: "Server Error: Permission check failed.",
+                error: error.message,
+            });
+        }
+    };
+};

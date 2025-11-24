@@ -27,8 +27,6 @@ app.get("/health", catchError(async (req, res) => {
         dataBase: 'MongoDB',
         container: 'Docker Container....',
         CICD: "Git Hub...",
-        "name": "Syed ameen abrar bhai..........................",
-        "test": "qwerty"
     }
     return responser.send(200, `${healthPayload.projectName} Health Check Up`, req, res, healthPayload)
 }))

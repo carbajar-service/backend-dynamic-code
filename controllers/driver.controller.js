@@ -7,7 +7,7 @@ module.exports.driverRegister = async (req, res) => {
     const reqData = req.body;
     const data = await driverService.driverRegister(reqData);
     logger.data("successfully register created", data);
-    return responser.send(200, "successFully driver Registed", req, res, data);
+    return responser.send(200, "successfully driver Registed", req, res, data);
 };
 
 module.exports.driverLogin = async (req, res) => {

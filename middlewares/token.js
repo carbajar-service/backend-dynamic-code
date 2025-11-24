@@ -7,7 +7,7 @@ module.exports.signToken = (id, type) => {
   switch (type) {
     case "access":
       secret = config.JWT_SECRET,
-      tokenValidity = config.ACCESS_TOKEN_VALIDITY;
+        tokenValidity = config.ACCESS_TOKEN_VALIDITY;
       break;
     case "refresh":
       secret = config.REFRESH_SECRET;

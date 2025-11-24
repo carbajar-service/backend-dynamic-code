@@ -5,7 +5,6 @@ const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
 const driverSchema = new mongoose.Schema(
     {
         username: { type: String, required: true, unique: true },
-        fullName: { type: String },
         email: { type: String, required: true, unique: true },
         emailOtp: { type: Number, },
         phoneNumber: { type: Number, required: true, unique: true },
@@ -15,8 +14,7 @@ const driverSchema = new mongoose.Schema(
             type: String,
             default: "driver",
         },
-        isDriver: { type: Boolean, required: true },
-        profilePicture: { type: String },
+        isDriver: { type: Boolean, default: true },
         collectionName: {
             type: String,
             default: "driver",
