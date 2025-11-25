@@ -42,54 +42,89 @@ module.exports.createRegister = async (body) => {
 };
 
 // userlogin with otp
-module.exports.authLogin = async (body) => {
-    logger.info("User Login Service Started");
-    // Validation: requires at least phoneNumber or email
-    if (!(body.phoneNumber || body.email)) {
-        throw new AppError(400, "Email or Phone Number is required");
+// module.exports.authLogin = async (body) => {
+//     logger.info("User Login Service Started");
+//     // Validation: requires at least phoneNumber or email
+//     if (!(body.phoneNumber || body.email)) {
+//         throw new AppError(400, "Email or Phone Number is required");
+//     }
+//     // Validation: requires password or OTP
+//     if (!(body.password || body.phoneOTP)) {
+//         throw new AppError(400, "Password or OTP is required");
+//     }
+//     let filter = { accountType: "user" };
+//     if (body.email) filter.email = body.email;
+//     if (body.phoneNumber) filter.phoneNumber = body.phoneNumber;
+//     const user = await userService.findOneRecord(filter);
+//     logger.data("User Found", user);
+
+//     if (!user) {
+//         throw new AppError(404, "User does not exist. Register first!");
+//     }
+//     // Password Login
+//     if (body.password) {
+//         const isPasswordValid = bcrypt.compareSync(body.password, user.password);
+//         if (!isPasswordValid) {
+//             throw new AppError(401, "Invalid Credentials");
+//         }
+//     }
+
+//     // OTP Login
+//     if (body.phoneOTP) {
+//         if (String(body.phoneOTP) !== String(user.phoneOTP)) {
+//             throw new AppError(401, "Invalid OTP");
+//         }
+//         // Reset OTP after successful OTP validation
+//         await this.updateRecord({ _id: user._id }, { $unset: { phoneOTP: "" } });
+//     }
+//     const accessToken = tokenService.signToken(user._id, "access");
+//     const refreshToken = tokenService.signToken(user._id, "refresh");
+//     const result = {
+//         _id: user._id,
+//         username: user.username,
+//         phoneNumber: user.phoneNumber,
+//         email: user.email,
+//         accountType: user.accountType,
+//         accessToken,
+//         refreshToken
+//     };
+//     logger.info(`Login Success for User ID: ${user._id}`);
+//     return result;
+// };
+
+module.exports.authLogin = async (body, res) => {
+    logger.info("login service Starting");
+    if (!body.phoneNumber || !body.phoneOTP) {
+        throw new AppError(404, "Required Parameters");
     }
-    // Validation: requires password or OTP
-    if (!(body.password || body.phoneOTP)) {
-        throw new AppError(400, "Password or OTP is required");
-    }
-    let filter = { accountType: "user" };
-    if (body.email) filter.email = body.email;
-    if (body.phoneNumber) filter.phoneNumber = body.phoneNumber;
+    const filter = { phoneNumber: body.phoneNumber, accountType: "user" };
     const user = await userService.findOneRecord(filter);
-    logger.data("User Found", user);
-
+    logger.data("User info fetched", user);
     if (!user) {
-        throw new AppError(404, "User does not exist. Register first!");
+        throw new AppError(404, "Your not a existing user.Register first!");
     }
-    // Password Login
-    if (body.password) {
-        const isPasswordValid = bcrypt.compareSync(body.password, user.password);
-        if (!isPasswordValid) {
-            throw new AppError(401, "Invalid Credentials");
-        }
-    }
+    // if (user.isBlocked) {
+    //     throw new AppError(404, "auth", "A_E016");
+    // }
+    if (body.phoneOTP !== String(user.phoneOTP))
+        throw new AppError(400, "Invalid OTP!");
 
-    // OTP Login
-    if (body.phoneOTP) {
-        if (String(body.phoneOTP) !== String(user.phoneOTP)) {
-            throw new AppError(401, "Invalid OTP");
-        }
-        // Reset OTP after successful OTP validation
-        await this.updateRecord({ _id: user._id }, { $unset: { phoneOTP: "" } });
-    }
+    const updateOtp = await userService.updateRecord(
+        { _id: user.id },
+        { phoneOTP: null, phoneisVerified: true }
+    );
+    logger.info(updateOtp);
     const accessToken = tokenService.signToken(user._id, "access");
     const refreshToken = tokenService.signToken(user._id, "refresh");
-    const result = {
-        _id: user._id,
+    const userObject = {
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        id: user._id,
         username: user.username,
         phoneNumber: user.phoneNumber,
-        email: user.email,
-        accountType: user.accountType,
-        accessToken,
-        refreshToken
+        account: user.accountType,
     };
-    logger.info(`Login Success for User ID: ${user._id}`);
-    return result;
+    return userObject
 };
 
 // user login otp

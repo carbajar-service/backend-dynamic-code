@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ limit: "20mb", extended: true }))
 app.use(cors());
-require('./cron/sendProductPdfs');
+// require('./cron/sendProductPdfs');
 
 app.use(express.static(__dirname + "/images"));
 app.use("/images", express.static("images"));
@@ -27,8 +27,6 @@ app.get("/health", catchError(async (req, res) => {
         dataBase: 'MongoDB',
         container: 'Docker Container....',
         CICD: "Git Hub...",
-        "name":"shuaib",
-        "role":"frontend developer"
     }
     return responser.send(200, `${healthPayload.projectName} Health Check Up`, req, res, healthPayload)
 }))

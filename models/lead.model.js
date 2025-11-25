@@ -25,7 +25,7 @@ const leadSchema = new schema(
         createdDate: { type: String }, // If this is a user-input display date
         leadStatus: {
             type: String,
-            enum: ["NEW-LEAD", "FOLLOW-UP", "CONFIRMED", "CANCELLED"],
+            enum: ["NEW-LEAD", "CRON", "PROCESSING", "CONFIRMED", "CANCELLED", "COMPLETED"],
             default: "NEW-LEAD"
         },
         uniqueLeadName: { type: String, unique: true },
