@@ -14,8 +14,8 @@ const accountUserSchema = new schema(
         state: { type: String, required: true },
         accountStatus: {
             type: String,
-            enum: ["pending", "rejected", "approved"],
-            default: "approved"
+            enum: ["pending", "rejected", "active"],
+            default: "active"
         },
         reasonForRejection: { type: String },
         profileCompleted: { type: Boolean, default: false },

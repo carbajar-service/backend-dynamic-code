@@ -15,7 +15,7 @@ const accountDriverSchema = new schema(
         accountStatus: {
             type: String,
             enum: ["pending", "rejected", "approved"],
-            default: "approved"
+            default: "pending"
         },
         vehicleType: { type: String, required: true },
         vehicleName: { type: String },

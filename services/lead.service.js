@@ -36,7 +36,7 @@ module.exports.generateLeadId = () => {
     return "LEAD-" + Math.random().toString(36).substr(2, 9).toUpperCase();
 };
 
-// Create Lead
+// 1. Create Lead
 module.exports.createLead = async (body) => {
     logger.info("START: Creating Lead");
     const requiredFields = [
@@ -77,33 +77,51 @@ module.exports.createLead = async (body) => {
     return leadRecord;
 };
 
-// User - Get My Leads
+// 2. User - Get My Leads all & by status 
 module.exports.getMyLeads = async (loggedInUser, query) => {
     logger.info("START: Fetch My Leads");
-    const { page = 1, limit = 10 } = query;
+    const {
+        page = 1,
+        limit = 10,
+        ridestatus // this is the filter
+    } = query;
     const pageNumber = parseInt(page);
     const pageSize = parseInt(limit);
     const skip = (pageNumber - 1) * pageSize;
-    const condition = {
-        $and: [{ createdBy: loggedInUser?._id }, { userId: loggedInUser?._id }],
-        // TODO 
+
+    const statusMapping = {
+        latest: "NEW-LEAD",
+        conformed: "CONFIRMED",
+        processing: "PROCESSING",
+        cancelled: "CANCELLED",
+        completed: "COMPLETED",
+        cron: "CRON"
     };
+
+    let condition = {
+        createdBy: loggedInUser._id,
+        userId: loggedInUser._id
+    };
+
+    // Apply status filter if provided and valid
+    if (ridestatus && statusMapping[ridestatus.toLowerCase()]) {
+        condition.leadStatus = statusMapping[ridestatus.toLowerCase()];
+    }
+
     const populateQuery = [
         { path: "userId", select: ["_id", "username", "accountType", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
     ];
-    // Fetch paginated results
-    const result = await LeadModel
-        .find(condition)
+
+    const result = await LeadModel.find(condition)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize)
         .populate(populateQuery)
-        .select("-__v")
+        .select("-__v -cancellationHistory")
         .lean();
 
-    // Count total matching documents
     const total = await LeadModel.countDocuments(condition);
     const totalPages = Math.ceil(total / pageSize);
     const hasNextPage = pageNumber < totalPages;
@@ -124,6 +142,7 @@ module.exports.getMyLeads = async (loggedInUser, query) => {
     };
 };
 
+// 3. user update laed
 module.exports.updateLead = async (leadId, body, loggedInUser) => {
     logger.info("START: Updating Lead");
 
@@ -192,7 +211,90 @@ module.exports.updateLead = async (leadId, body, loggedInUser) => {
     return updatedLead;
 };
 
-// Update Lead Status
+//4. user Delete Lead
+module.exports.deleteLead = async (leadId) => {
+    logger.info("START: Deleting Lead");
+    const deleted = await LeadModel.findOneAndDelete({ _id: leadId });
+    if (!deleted) throw new AppError(404, "Lead not found in collection");
+    return true;
+};
+
+// 5. user can cancel the lead/ride
+module.exports.cancelMyLead = async (leadId, loggedInUser, body) => {
+    logger.info("START: Cancel My Lead");
+    if (!body.reasonForCancellation) {
+        throw new AppError(400, "Cancellation reason is required");
+    }
+    // Find the lead
+    const condition = {
+        $and: [{ _id: leadId }, { userId: loggedInUser?._id }]
+    }
+    const lead = await LeadModel.findOne(condition);
+    if (!lead) {
+        throw new AppError(404, "Lead not found or does not belong to you");
+    }
+    if (lead?.leadStatus === "CANCELLED") {
+        throw new AppError(400, "This lead is already cancelled");
+    }
+    // Combine pickUpDate + pickUpTime into a single DateTime
+    const pickupDateTime = new Date(`${lead.pickUpDate}T${lead.pickUpTime}`);
+    const currentDateTime = new Date();
+    if (pickupDateTime <= currentDateTime) {
+        throw new AppError(400, "You cannot cancel a ride after pickup time");
+    }
+    // Track history entry
+    const history = {
+        reason: body.reasonForCancellation,
+        cancelledBy: loggedInUser._id,
+        cancelledAt: new Date()
+    };
+    // Update lead details
+    lead.leadStatus = "CANCELLED";
+    lead.updatedBy = loggedInUser._id;
+    lead.cancellationReason = body.reasonForCancellation;
+    lead.cancellationHistory.push(history);
+    await lead.save();
+    logger.info("Lead canceled successfully with reason");
+    return {
+        leadStatus: lead.leadStatus,
+        uniqueLeadName: lead.uniqueLeadName,
+        cancellationReason: lead.cancellationReason
+    };
+};
+
+// 6. cancel history
+module.exports.getCancellationHistory = async (loggedInUser) => {
+    logger.info("START: Fetch All Cancellation History");
+
+    // Find all leads of this user that have cancellation history
+    const populateQuery = [
+        { path: "userId", select: ["_id", "username", "accountType", "phoneNumber"] },
+        { path: "cancellationHistory.cancelledBy", select: ["_id", "username", "accountType"] },
+    ];
+    const condition = {
+        userId: loggedInUser._id,
+        cancellationHistory: { $exists: true, $ne: [] }
+    }
+    const filter = { cancellationHistory: 1 }
+    const leads = await LeadModel.find(condition, filter).populate(populateQuery).lean();
+
+    if (!leads || leads.length === 0) {
+        throw new AppError(404, "No cancellation history found for this user");
+    }
+
+    // Collect all cancellation events in one single array
+    let history = [];
+    leads.forEach(lead => {
+        history = history.concat(lead.cancellationHistory);
+    });
+
+    // Sort by newest first
+    history.sort((a, b) => new Date(b.cancelledAt) - new Date(a.cancelledAt));
+    logger.info("END: Fetch All Cancellation History");
+    return history;
+};
+
+// admin / driver Update Lead Status
 module.exports.updateLeadStatus = async (leadId, status, user) => {
     logger.info("START: Update Lead Status");
 
@@ -210,15 +312,4 @@ module.exports.updateLeadStatus = async (leadId, status, user) => {
     if (!lead) throw new AppError(404, "Lead not found");
 
     return lead;
-};
-
-
-// Delete Lead
-module.exports.deleteLead = async (leadId) => {
-    logger.info("START: Deleting Lead");
-
-    const deleted = await LeadModel.findOneAndDelete({ _id: leadId });
-    if (!deleted) throw new AppError(404, "Lead not found in collection");
-
-    return true;
 };

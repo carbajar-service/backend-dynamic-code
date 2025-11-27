@@ -24,6 +24,15 @@ leadRouter
     .route("/my/delete/:leadId")
     .delete(verifyJWT, authorizePermissions("user"), catchError(leadController.deleteMyLead));
 
+leadRouter
+    .route("/cancel/:leadId")
+    .patch(verifyJWT, authorizePermissions("user"), catchError(leadController.cancelMyLead));
+
+leadRouter
+    .route("/cancel-history")
+    .get(verifyJWT, authorizePermissions("user"), catchError(leadController.getCancellationHistory));
+
+
 // Admin - Get All Leads
 
 module.exports = leadRouter;

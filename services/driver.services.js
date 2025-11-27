@@ -8,6 +8,7 @@ const driverModel = require("../models/driver.model");
 const tokenService = require("../middlewares/token");
 const { generateOTP, generateUniqueUsername } = require('../utils/utils');
 const sms = require('./sms/fast2sms');
+const accountDriverService = require("./accountDriver.service");
 
 // register driver
 module.exports.driverRegister = async (body) => {
@@ -91,6 +92,17 @@ module.exports.driverLogin = async (body) => {
     const accessToken = tokenService.signToken(driver._id, 'access');
     const refreshToken = tokenService.signToken(driver._id, 'refresh');
 
+    const account = await accountDriverService.findOneRecord({ driverId: driver?._id });
+    const accountCompleted = account?.profileCompleted === true;
+    // changed to account success
+    let accountApproved;
+    if (account?.accountStatus === null) {
+        accountApproved = "still account not created"
+    } else {
+        accountApproved = account?.accountStatus
+    }
+    let accountRejected = account?.accountStatus === "rejected" ? account?.reasonForRejection : undefined;
+
     const record = {
         _id: driver._id,
         username: driver.username,
@@ -98,6 +110,9 @@ module.exports.driverLogin = async (body) => {
         accountType: driver.accountType,
         accessToken,
         refreshToken,
+        accountCompleted,
+        accountApproved,
+        accountRejected
     };
 
     return record;

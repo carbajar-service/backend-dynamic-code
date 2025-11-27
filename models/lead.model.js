@@ -29,8 +29,16 @@ const leadSchema = new schema(
             default: "NEW-LEAD"
         },
         uniqueLeadName: { type: String, unique: true },
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
-        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+        createdBy: { type: schema.Types.ObjectId, ref: "users" },
+        updatedBy: { type: schema.Types.ObjectId, ref: "users" },
+        cancellationReason: { type: String },
+        cancellationHistory: [
+            {
+                reason: String,
+                cancelledBy: { type: schema.Types.ObjectId, ref: "users" },
+                cancelledAt: { type: Date, default: Date.now }
+            }
+        ]
     },
     { timestamps: true }
 );
