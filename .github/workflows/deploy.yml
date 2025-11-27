@@ -20,7 +20,7 @@ jobs:
           echo $VERSION > .version
           echo "IMAGE_TAG=v$VERSION" >> $GITHUB_ENV
           git config --global user.email "github@actions.com"
-          git config --global user.name "GitHub Actions"
+          git config --global user.name "Usman Actions"
           git add .version
           git commit -m "Increment version to v$VERSION" || true
           git push || true

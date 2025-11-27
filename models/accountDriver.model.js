@@ -33,7 +33,7 @@ const accountDriverSchema = new schema(
     { timestamps: true }
 );
 
-accountDriverSchema.index({ userId: 1 }, { unique: true });
+accountDriverSchema.index({ driverId: 1 }, { unique: true });
 accountDriverSchema.index({ walletId: 1 }, { unique: true });
 accountDriverSchema.plugin(paginate);
 accountDriverSchema.plugin(aggregatePaginate);
