@@ -25,12 +25,34 @@ const leadSchema = new schema(
         createdDate: { type: String }, // If this is a user-input display date
         leadStatus: {
             type: String,
-            enum: ["NEW-LEAD", "CRON", "PROCESSING", "CONFIRMED", "CANCELLED", "COMPLETED"],
+            enum: ["NEW-LEAD", "CONFIRMED", "CANCELLED", "COMPLETED", "STARTED"],
             default: "NEW-LEAD"
         },
+        showFlag: { type: Boolean, default: false },
         uniqueLeadName: { type: String, unique: true },
         createdBy: { type: schema.Types.ObjectId, ref: "users" },
         updatedBy: { type: schema.Types.ObjectId, ref: "users" },
+        assign: {
+            driverId: { type: schema.Types.ObjectId, ref: "driver" },
+            assignedAt: { type: Date },
+            assignmentStatus: {
+                type: String,
+                enum: ["pending", "accepted", "rejected"],
+                default: "pending"
+            },
+            assignType: {
+                type: String,
+                enum: ["auto", "manual"],
+                default: "auto"
+            }
+        },
+        rejectionHistory: [
+            {
+                reason: String,
+                rejectedBy: { type: schema.Types.ObjectId, ref: "driver" },
+                rejectedAt: { type: Date, default: Date.now }
+            }
+        ],
         cancellationReason: { type: String },
         cancellationHistory: [
             {

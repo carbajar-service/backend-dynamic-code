@@ -73,7 +73,7 @@ module.exports.createLead = async (body) => {
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
     ];
-    const leadRecord = await this.findOneRecord({ _id: record._id }, "", populateQuery);
+    const leadRecord = await this.findOneRecord({ _id: record._id }, "-rejectionHistory -cancellationHistory -__v -adminSeen", populateQuery);
     return leadRecord;
 };
 
