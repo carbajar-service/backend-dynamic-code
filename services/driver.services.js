@@ -163,7 +163,7 @@ module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
         vehicleType: driverAccount.vehicleType,
         leadStatus: "NEW-LEAD",
         showFlag: true,
-        pickUpDate: { $gte: now.toISOString().split("T")[0] }, // Future or today pickups only
+        // pickUpDate: { $gte: now.toISOString().split("T")[0] }, // Future or today pickups only
         "assign.driverId": { $exists: false } // Ensure not already taken
     };
 
