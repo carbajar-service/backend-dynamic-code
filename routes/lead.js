@@ -32,6 +32,9 @@ leadRouter
     .route("/cancel-history")
     .get(verifyJWT, authorizePermissions("user"), catchError(leadController.getCancellationHistory));
 
+leadRouter
+    .route("/single/:leadId")
+    .get(catchError(leadController.getSingleLead));
 
 // Admin - Get All Leads
 

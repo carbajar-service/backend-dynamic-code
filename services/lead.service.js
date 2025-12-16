@@ -313,3 +313,19 @@ module.exports.updateLeadStatus = async (leadId, status, user) => {
 
     return lead;
 };
+
+// get lead\ride by id 
+module.exports.getSingleLead = async (leadId) => {
+    logger.info("START: fetching lead by id");
+    const condition = {
+        _id: leadId
+    }
+    const populateQuery = [
+        { path: "userId", select: ["_id", "username", "accountType", "phoneNumber"] },
+        { path: "createdBy", select: ["_id", "username", "accountType"] },
+        { path: "updatedBy", select: ["_id", "username", "accountType"] }
+    ];
+    const record = await this.findOneRecord(condition, "-rejectionHistory -cancellationHistory -__v -adminSeen", populateQuery);
+    if (!record) throw new AppError(404, "Record not found in database");
+    return record
+}

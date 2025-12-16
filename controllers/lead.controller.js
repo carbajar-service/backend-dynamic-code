@@ -52,6 +52,14 @@ class LeadController {
         return responser.send(200, "All Cancellation History Fetched", req, res, result);
     };
 
+    // getSingleLead
+    getSingleLead = async (req, res) => {
+        const params = req.params;
+        const result = await leadService.getSingleLead(params.leadId);
+        logger.info(result);
+        return responser.send(200, "Single lead fetched successfully", req, res, result);
+    };
+
 }
 
 module.exports = new LeadController();

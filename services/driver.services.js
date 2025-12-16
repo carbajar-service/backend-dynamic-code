@@ -469,4 +469,4 @@ module.exports.getDriverEarnings = async (loggedInDriver, query) => {
     return earnings;
 };
 
-// 
+// get single lead/ride 
