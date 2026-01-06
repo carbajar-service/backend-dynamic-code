@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Vehicle = require('../models/Vehicle');
+// const Vehicle = require('../models/Vehicle');
 const { generatePdfFromHtml } = require('../services/pdfService');
 
 router.get('/generate-pdf/:id', async (req, res) => {

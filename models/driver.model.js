@@ -8,21 +8,15 @@ const driverSchema = new mongoose.Schema(
         email: { type: String, required: true, unique: true },
         emailOtp: { type: Number, },
         phoneNumber: { type: Number, required: true, unique: true },
-        phoneOTP: { type: Number, },
-        password: { type: String },
+        phoneIsVerified: { type: Boolean, default: false },
+        phoneOTP: { type: Number},
+        phoneOTPExpiresAt: { type: Date },
+        password: { type: String, required: true },
         accountType: {
             type: String,
-            default: "driver",
+            enum: ["individual", "agency"],
         },
-        isDriver: { type: Boolean, default: true },
-        collectionName: {
-            type: String,
-            default: "driver",
-        },
-    },
-    {
-        timestamps: true,
-    }
+    }, { timestamps: true, }
 );
 
 driverSchema.plugin(paginate);

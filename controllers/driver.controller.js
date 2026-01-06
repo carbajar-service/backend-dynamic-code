@@ -7,7 +7,7 @@ module.exports.driverRegister = async (req, res) => {
     const reqData = req.body;
     const data = await driverService.driverRegister(reqData);
     logger.data("successfully register created", data);
-    return responser.send(200, "successfully driver Registed", req, res, data);
+    return responser.send(200, `Successfully ${data.accountType} registed`, req, res, data);
 };
 
 module.exports.driverLogin = async (req, res) => {
@@ -55,7 +55,7 @@ module.exports.cancelRideByDriver = async (req, res) => {
     const params = req.params;
     const loggedIn = req.driver;
     const reqData = req.body;
-    const result = await driverService.cancelRideByDriver(params.leadId, loggedIn,reqData);
+    const result = await driverService.cancelRideByDriver(params.leadId, loggedIn, reqData);
     return responser.send(200, "Successfully lead cancelled", req, res, result);
 };
 

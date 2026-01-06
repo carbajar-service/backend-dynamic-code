@@ -6,8 +6,6 @@ const APIFeatures = require("../utils/apiFeature")
 const walletService = require("./wallet.service");
 const { uploadOnCloudinary } = require("../core/cloudImage");
 const mongoose = require("mongoose");
-// const { sendPushNotificationToMultiple } = require("../utils/firebase/sendPushNotification");
-// const { getUserFcmTokens } = require("./auth.service");
 
 // Generate a new Mongo ObjectId
 const newId = new mongoose.mongo.ObjectId();
@@ -33,17 +31,13 @@ module.exports.updateRecord = async (condition, body) => {
     return record;
 };
 
+// 1 create account
 module.exports.createAccount = async (body, loggedInDriver) => {
     logger.info("START: Creating account");
     const requiredFields = [
         "gender",
         "city",
         "state",
-        "vehicleType",
-        "vehicleNumber",
-        "vehicleRc",
-        "vehicleNumber",
-        "driverDL"
     ];
 
     for (const field of requiredFields) {
@@ -51,7 +45,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
             throw new AppError(400, `${field} is required`);
         }
     }
-    const accountExists = await this.findOneRecord({ driverId: loggedInDriver?._id });
+    const accountExists = await this.findOneRecord({ driverId: loggedInDriver?._id});
     if (accountExists) {
         throw new AppError(409, "Already Account Exists.You Can't Create Account")
     }
@@ -66,25 +60,17 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         createdBy: loggedInDriver._id,
         updatedBy: loggedInDriver._id,
         accountStatus: "pending",
-        profileCompleted: true,
         gender: body.gender,
         city: body.city,
         state: body.state,
         profilePicture: body.profilePicture,
-        vehicleType: body.vehicleType,
         walletId: newId,
-        vehicleName: body.vehicleName,
-        vehicleNumber: body.vehicleNumber,
-        vehicleRc: body.vehicleRc,
-        driverDL: body.driverDL,
     };
 
     // Optional fields
     if (body.firstName) payloadData.firstName = body.firstName;
     if (body.lastName) payloadData.lastName = body.lastName;
     if (body.dob) payloadData.dob = body.dob;
-    if (body.aadharNumber) payloadData.aadharNumber = body.aadharNumber;
-
     const record = await this.createRecord(payloadData);
     // TODO Create the wallet of the user
     const walletPayload = {
@@ -100,7 +86,6 @@ module.exports.createAccount = async (body, loggedInDriver) => {
     ];
     const account = await this.findOneRecord({ _id: record._id }, "", populateQuery);
     return account;
-
 };
 
 // get all account 
@@ -132,6 +117,7 @@ module.exports.getOneDriverAccount = async (accountId) => {
         { path: "walletId", select: ["_id", "balance"] },
     ];
     const account = await this.findOneRecord({ _id: accountId }, "-__v", populateQuery);
+    if (!account) throw new AppError(404, "account not found")
     return account;
 };
 

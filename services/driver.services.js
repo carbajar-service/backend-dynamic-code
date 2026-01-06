@@ -18,13 +18,24 @@ module.exports.driverRegister = async (body) => {
     if (!body.email) throw new AppError(404, "Email Required");
     if (!body.phoneNumber) throw new AppError(404, "Phone Number Required");
     if (!body.password) throw new AppError(404, "Password Required");
+    if (!body.accountType) throw new AppError(404, "Account Type Required")
 
     const isEmailExist = await driverModel.findOne({ email: body.email });
     if (isEmailExist) throw new AppError(429, "Email already exists");
 
     const isPhoneExist = await driverModel.findOne({ phoneNumber: body.phoneNumber });
     if (isPhoneExist) throw new AppError(429, "Phone number already exists");
-
+    let account
+    switch (body.accountType) {
+        case "individual":
+            account = "individual"
+            break;
+        case "agency":
+            account = "agency"
+            break
+        default:
+            throw new AppError("404", "type Not found");
+    }
     const hashedPassword = bcrypt.hashSync(body.password, 10);
     const payload = {
         username: generateUniqueUsername('DRI'),
@@ -32,6 +43,8 @@ module.exports.driverRegister = async (body) => {
         phoneNumber: Number(body.phoneNumber),
         password: hashedPassword,
         phoneOTP: generateOTP(),
+        phoneOTPExpiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        accountType: account
     };
     logger.info(payload);
     const delareCreation = await driverModel.create(payload);
@@ -79,14 +92,24 @@ module.exports.driverLogin = async (body) => {
 
     // If login is via OTP
     if (body.phoneOTP) {
+        if (!driver.phoneOTP || !driver.phoneOTPExpiresAt) {
+            throw new AppError(400, "OTP not generated");
+        }
+
+        if (Date.now() > driver.phoneOTPExpiresAt.getTime()) {
+            throw new AppError(401, "OTP expired");
+        }
+
         if (body.phoneOTP !== String(driver.phoneOTP)) {
             throw new AppError(401, 'Invalid OTP');
         }
         // If OTP is valid, mark phone as verified and reset OTP
         await driverModel.findOneAndUpdate(
             { _id: driver._id },
-            // { phoneOTP: null, },
-            { $unset: { phoneOTP: "" } }
+            {
+                $set: { phoneIsVerified: true },
+                $unset: { phoneOTP: "", phoneOTPExpiresAt: "" }
+            }, { new: true, runValidators: false }
         );
     }
 
@@ -104,7 +127,6 @@ module.exports.driverLogin = async (body) => {
         accountApproved = account?.accountStatus
     }
     let accountRejected = account?.accountStatus === "rejected" ? account?.reasonForRejection : undefined;
-
     const record = {
         _id: driver._id,
         username: driver.username,
@@ -116,30 +138,34 @@ module.exports.driverLogin = async (body) => {
         accountApproved,
         accountRejected
     };
-
     return record;
 };
 
 // refreshOTP
 module.exports.refreshOtp = async (body) => {
-    logger.info("Refresh service Starting");
-    const filter = { phoneNumber: body.phoneNumber };
-    const driver = await driverModel.findOne(filter);
+    logger.info("Refresh OTP service starting");
+    const driver = await driverModel.findOne({ phoneNumber: body.phoneNumber });
     if (!driver) {
-        throw new AppError(404, "Your not a existing driver.Register first!");
-    } const option = { new: true };
+        throw new AppError(404, "You are not an existing driver / agency. Register first!");
+    }
+    const otp = generateOTP();
     const record = await driverModel.findOneAndUpdate(
         { _id: driver._id },
-        { phoneOTP: generateOTP() },
-        option
+        {
+            phoneOTP: otp,
+            phoneOTPExpiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes expiry
+        },
+        { new: true }
     );
+    // Send OTP via SMS
     await sms.smsOTPV2(record);
-    logger.info(record);
+    // Hide OTP before returning / logging
     record.phoneOTP = undefined;
-    // return record;
-    const d = `Successfully refresh OTP sent to ${body.phoneNumber}!`
-    return d;
+    record.phoneOTPExpiresAt = undefined;
+    logger.info(`OTP refreshed for ${body.phoneNumber}`);
+    return `Successfully refreshed OTP sent to ${body.phoneNumber}!`;
 };
+
 
 // get DriverProfile
 
