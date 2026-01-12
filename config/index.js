@@ -13,5 +13,6 @@ module.exports = {
     MAX_RETRIES: process.env.MAX_RETRIES,
     RETRY_DELAY_MS: process.env.RETRY_DELAY_MS,
     EMAIL_USER: process.env.EMAIL_USER,
-    EMAIL_PASS: process.env.EMAIL_PASS
+    EMAIL_PASS: process.env.EMAIL_PASS,
+    BCMAIL: ""
 }
