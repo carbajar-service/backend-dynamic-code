@@ -22,6 +22,9 @@ accountDriverRouter
 accountDriverRouter
     .route("/getProfile")
     .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(accountDriverController.getProfile));
+accountDriverRouter
+    .route("/profileCompleted")
+    .patch(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(accountDriverController.updateProfileStatus));
 
 // vehicle 
 accountDriverRouter

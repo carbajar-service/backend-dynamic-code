@@ -1,0 +1,3 @@
+module.exports.EVENTS = {
+    PROFILE_COMPLETED: "PROFILE_COMPLETED"
+};

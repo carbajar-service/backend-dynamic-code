@@ -132,6 +132,7 @@ module.exports.driverLogin = async (body) => {
         username: driver.username,
         email: driver.email,
         accountType: driver.accountType,
+        phoneNumber: driver.phoneNumber,
         accessToken,
         refreshToken,
         accountCompleted,

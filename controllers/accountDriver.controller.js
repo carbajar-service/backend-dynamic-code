@@ -50,6 +50,13 @@ module.exports.getProfile = async (req, res) => {
     return responser.send(200, `Successfully profile fetch`, req, res, data);
 };
 
+module.exports.updateProfileStatus = async (req, res) => {
+    const loggedInDriver = req.driver;
+    const reqBody = req.body;
+    const data = await accountDeiverService.updateProfileStatus(loggedInDriver, reqBody);
+    return responser.send(200, `Successfully profile status updated`, req, res, data);
+};
+
 // vehicle
 
 // 1. craete vehicle

@@ -6,6 +6,8 @@ const APIFeatures = require("../utils/apiFeature")
 const walletService = require("./wallet.service");
 const { uploadOnCloudinary } = require("../core/cloudImage");
 const mongoose = require("mongoose");
+const appEventEmitter = require("../utils/eventEmitter");
+const { EVENTS } = require("../utils/events");
 
 // Generate a new Mongo ObjectId
 const newId = new mongoose.mongo.ObjectId();
@@ -45,7 +47,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
             throw new AppError(400, `${field} is required`);
         }
     }
-    const accountExists = await this.findOneRecord({ driverId: loggedInDriver?._id});
+    const accountExists = await this.findOneRecord({ driverId: loggedInDriver?._id });
     if (accountExists) {
         throw new AppError(409, "Already Account Exists.You Can't Create Account")
     }
@@ -121,6 +123,50 @@ module.exports.getOneDriverAccount = async (accountId) => {
     return account;
 };
 
+module.exports.updateProfileStatus = async (loggedInDriver, body) => {
+    logger.info("START: updating driver profile completion status");
+    if (!loggedInDriver) {
+        throw new AppError(401, "Unauthorized: driver not logged in");
+    }
+    const condition = { driverId: loggedInDriver._id };
+    const profile = await this.findOneRecord(condition);
+    if (!profile) {
+        throw new AppError(404, "Account not found");
+    }
+    const updatePayload = {
+        updatedBy: loggedInDriver._id
+    };
+    if (body.profileCompleted !== undefined) {
+        const isProfileCompleted = Boolean(body.profileCompleted);
+        if (isProfileCompleted) {
+            if (!profile.vehiclesId || profile.vehiclesId.length === 0) {
+                throw new AppError(400, "Add at least one vehicle to complete profile");
+            }
+            if (!profile.documentIds || profile.documentIds.length === 0) {
+                throw new AppError(400, "Upload required documents to complete profile");
+            }
+        }
+        updatePayload.profileCompleted = isProfileCompleted;
+    }
+    const updatedRecord = await this.updateRecord(condition, updatePayload);
+    /**
+     * 🔔 EMIT EVENT ONLY WHEN PROFILE IS COMPLETED
+     */
+    if (
+        body.profileCompleted === true &&
+        profile.profileCompleted === false
+    ) {
+        appEventEmitter.emit(EVENTS.PROFILE_COMPLETED, {
+            driverId: loggedInDriver._id,
+            accountDriverId: updatedRecord._id,
+            source: "system",
+            timestamp: new Date()
+        });
+    }
+    logger.info("END: driver profile status updated");
+    return updatedRecord;
+};
+
 // update api
 module.exports.updateAccount = async (accountId, body) => {
     logger.info("START:Updating the account");
@@ -128,7 +174,6 @@ module.exports.updateAccount = async (accountId, body) => {
     const updatePayload = {
         updatedBy: body.driverId,
     };
-
     if (body.dob) updatePayload.dob = body.dob;
     if (body.gender) updatePayload.gender = body.gender;
     if (body.city) updatePayload.city = body.city;
