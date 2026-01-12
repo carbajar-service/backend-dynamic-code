@@ -135,12 +135,6 @@ module.exports.updateAccount = async (accountId, body) => {
     if (body.state) updatePayload.state = body.state;
     if (body.firstName) updatePayload.firstName = body.firstName;
     if (body.lastName) updatePayload.lastName = body.lastName;
-    if (body.vehicleType) updatePayload.vehicleType = body.vehicleType;
-    if (body.vehicleName) updatePayload.vehicleName = body.vehicleName;
-    if (body.vehicleNumber) updatePayload.vehicleNumber = body.vehicleNumber;
-    if (body.vehicleRc) updatePayload.vehicleRc = body.vehicleRc;
-    if (body.driverDL) updatePayload.driverDL = body.driverDL;
-
     if (body.profilePicture) {
         if (
             body.profilePicture.startsWith("https://") ||
@@ -152,10 +146,8 @@ module.exports.updateAccount = async (accountId, body) => {
             updatePayload.profilePicture = singlePicture?.secure_url;
         }
     }
-
     const record = await this.updateRecord({ _id: accountId }, updatePayload);
     if (!record) throw new AppError(404, "Account not found in collection");
-
     return record;
 };
 
@@ -166,56 +158,65 @@ module.exports.deleteAccount = async (accountId) => {
     return true;
 };
 
-module.exports.ACCOUNT_STATUS = Object.freeze({
-    APPROVED: "approved",
-    REJECTED: "rejected"
-});
+/**
+ * =========================
+ * GET DRIVER PROFILE
+ * =========================
+ */
+module.exports.getProfile = async (loggedInDriver) => {
+    logger.info("START: get driver profile");
 
-// republish api 
-module.exports.republishAccount = async (accountId, body) => {
-    logger.info("START: Republish the account");
-    const updatePayload = {
-        updatedBy: body.userId
-    };
-    let notificationMessage = "";
-    switch (body.accountStatus) {
-        case ACCOUNT_STATUS.REJECTED:
-            if (!body.reasonForRejection) {
-                throw new AppError(400, `Reason For Rejection is required`);
-            }
-            updatePayload.reasonForRejection = body.reasonForRejection;
-            updatePayload.accountStatus = body.accountStatus;
-            notificationMessage = `Your account was rejected. Reason: ${body.reasonForRejection}`;
-            break;
-
-        case ACCOUNT_STATUS.APPROVED:
-            updatePayload.accountStatus = body.accountStatus;
-            notificationMessage = "🎉 Your account has been approved!";
-            break;
-
-        default:
-            throw new AppError(400, `Invalid account status: ${body.accountStatus}`);
+    if (!loggedInDriver) {
+        throw new AppError(401, "Unauthorized: driver not logged in");
     }
 
-    const record = await updateRecord({ _id: accountId }, updatePayload);
-    if (!record) throw new AppError(404, "Account not found in collection");
-    const tokens = await getUserFcmTokens(record.userId);
-    const _data = {
-        userId: record.userId,
-        type: "account",
-        image: record.profilePicture
+    const populateQuery = [
+        {
+            path: "driverId",
+            select: ["_id", "username", "email", "phoneNumber", "accountType"]
+        },
+        {
+            path: "vehiclesId",
+            select: [
+                "_id",
+                "vehicleType",
+                "vehicleName",
+                "vehicleNumber",
+                "vehicleStatus"
+            ]
+        },
+        {
+            path: "documentIds",
+            select: [
+                "_id",
+                "documentType",
+                "documentStatus",
+                "documentVerification"
+            ]
+        },
+        {
+            path: "walletId",
+            select: ["_id", "balance"]
+        },
+        {
+            path: "createdBy",
+            select: ["_id", "username"]
+        },
+        {
+            path: "updatedBy",
+            select: ["_id", "username"]
+        }
+    ];
+
+    const profile = await accountDriverModel
+        .findOne({ driverId: loggedInDriver._id })
+        .select("-__v -verifiedBy -verifiedAt")
+        .populate(populateQuery);
+
+    if (!profile) {
+        throw new AppError(404, "Driver profile not found");
     }
-    await sendPushNotificationToMultiple(tokens, "Profile Update", notificationMessage, _data);
-    return record;
+
+    logger.info("END: get driver profile");
+    return profile;
 };
-
-// get my account profile by loggedIn 
-module.exports.myAccountLoggedIn = async (loggedIn) => {
-    const condition = {
-        userId: loggedIn._id
-    }
-    const select = "-__v -savedPromotions";
-    const populateData = [{ path: "userId", select: ["_id", "email", "phoneNumber", "username"] }]
-    const account = await findOneRecord(condition, select, populateData);
-    return account;
-}

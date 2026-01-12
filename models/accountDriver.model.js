@@ -25,6 +25,8 @@ const accountDriverSchema = new schema(
         profileCompleted: { type: Boolean, default: false },
         documentVerification: { type: Boolean, default: false },
         driverType: { type: Boolean, enum: ["individual", "agency"] },
+        verifiedBy: { type: schema.Types.ObjectId },//admin
+        verifiedAt: { type: Date },
         createdBy: { type: schema.Types.ObjectId, ref: "driver" },
         updatedBy: { type: schema.Types.ObjectId, ref: "driver" },
     },

@@ -6,8 +6,6 @@ const schema = mongoose.Schema;
 const driverDocumentSchema = new mongoose.Schema(
     {
         driverId: { type: schema.Types.ObjectId, ref: "driver", required: true, index: true },
-        aadharNumber: { type: String, unique: true },
-        driverDL: { type: String, unique: true },
         documentType: {
             type: String,
             enum: [
@@ -21,8 +19,8 @@ const driverDocumentSchema = new mongoose.Schema(
             ],
             required: true
         },
-        documentNumber: { type: String },
-        documentFile: { type: String, },
+        documentNumber: { type: String, required: true },
+        documentImages: [{ image: { type: String } }],
         documentStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
         documentVerification: { type: Boolean, default: false },
         rejectionReason: { type: String },

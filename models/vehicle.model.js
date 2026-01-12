@@ -10,8 +10,15 @@ const vehicleSchema = new mongoose.Schema(
         vehicleName: { type: String, required: true },
         vehicleNumber: { type: String, required: true, unique: true },
         vehicleRc: { type: String, required: true, unique: true },
-        isPrimary: { type: Boolean, default: true },
-        vehicleStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "approved" },
+        vehicleRcImages: [{ image: { type: String } }],
+        vehicleImages: [{ image: { type: String } }],
+        vehicleStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+        vehicleBrand: { type: String, required: true },
+        vehicleModel: { type: String, required: true },
+        numberOfSeats: { type: String, },
+        regYear: { type: String, required: true },
+        verifiedBy: { type: schema.Types.ObjectId },//admin
+        verifiedAt: { type: Date },
         createdBy: { type: schema.Types.ObjectId, ref: "driver" },
         updatedBy: { type: schema.Types.ObjectId, ref: "driver" }
     },

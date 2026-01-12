@@ -43,18 +43,23 @@ module.exports.deleteAccount = async (req, res) => {
     return responser.send(200, `Successfully Account Deleted`, req, res, data);
 };
 
+module.exports.getProfile = async (req, res) => {
+    const loggedInDriver = req.driver;
+    const data = await accountDeiverService.getProfile(loggedInDriver);
+    logger.info(data);
+    return responser.send(200, `Successfully profile fetch`, req, res, data);
+};
+
 // vehicle
+
+// 1. craete vehicle
 module.exports.createVehicle = async (req, res) => {
     logger.info("Create Vehicle");
     const reqData = req.body;
     const loggedInDriver = req.driver;
-
     reqData.driverId = loggedInDriver._id;
-    logger
-
     const data = await vehicleService.createVehicle(reqData);
     logger.data("Vehicle created successfully", data);
-
     return responser.send(
         200,
         "Successfully vehicle registered",
@@ -64,20 +69,28 @@ module.exports.createVehicle = async (req, res) => {
     );
 };
 
-// TODO
+// 2. get my vehicles
 module.exports.getMyVehicles = async (req, res) => {
     logger.info("Get Driver Vehicles");
     const loggedInDriver = req.driver;
-
-    const data = await vehicleService.findAllRecord(
-        { driverId: loggedInDriver._id },
-        null,
-        null
-    );
-
+    const data = await vehicleService.getMyVehicles(loggedInDriver);
     return responser.send(
         200,
         "Successfully fetched vehicles",
+        req,
+        res,
+        data
+    );
+};
+
+// 3 get single vehicle by id
+module.exports.getVehicleById = async (req, res) => {
+    logger.info("Get Driver Vehicles");
+    const params = req.params;
+    const data = await vehicleService.getVehicleById(params.vehicleId);
+    return responser.send(
+        200,
+        "Successfully fetched single vehicle",
         req,
         res,
         data
@@ -104,6 +117,37 @@ module.exports.createDocument = async (req, res) => {
     );
 };
 
+module.exports.getMyDocuments = async (req, res, next) => {
+    logger.info("START: Get logged-in driver documents");
+    const loggedInDriver = req.driver;
+    const documents = await driverDocumentService.getMyDocuments(loggedInDriver);
+    return responser.send(
+        200,
+        "Successfully fetched driver documents",
+        req,
+        res,
+        documents
+    );
+};
+
+module.exports.getMyDocumentById = async (req, res, next) => {
+    logger.info("START: Get single driver document");
+    const loggedInDriver = req.driver;
+    const { documentId } = req.params;
+    const document = await driverDocumentService.getMyDocumentById(
+        documentId,
+        loggedInDriver
+    );
+    return responser.send(
+        200,
+        "Successfully fetched document",
+        req,
+        res,
+        document
+    );
+};
+
+
 // TODO
 module.exports.updateDriverDocument = async (req, res) => {
     logger.info("Update Driver Document");
@@ -122,26 +166,6 @@ module.exports.updateDriverDocument = async (req, res) => {
     return responser.send(
         200,
         "Successfully document updated",
-        req,
-        res,
-        data
-    );
-};
-
-// TODO
-module.exports.getMyDocuments = async (req, res) => {
-    logger.info("Get Driver Documents");
-    const loggedInDriver = req.driver;
-
-    const data = await driverDocumentService.findAllRecord(
-        { driverId: loggedInDriver._id },
-        null,
-        null
-    );
-
-    return responser.send(
-        200,
-        "Successfully fetched documents",
         req,
         res,
         data

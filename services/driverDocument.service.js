@@ -48,7 +48,6 @@ module.exports.createDocument = async (data) => {
     const requiredFields = [
         "driverId",
         "documentType",
-        "documentFile"
     ];
 
     for (const field of requiredFields) {
@@ -60,7 +59,6 @@ module.exports.createDocument = async (data) => {
     // Prevent duplicate document type for same driver
     const existingDocument = await driverDocumentModel.findOne({
         driverId: data.driverId,
-        documentType: data.documentType
     });
 
     if (existingDocument) {
@@ -71,7 +69,7 @@ module.exports.createDocument = async (data) => {
         driverId: data.driverId,
         documentType: data.documentType,
         documentNumber: data.documentNumber,
-        documentFile: data.documentFile,
+        documentImages: data.documentImages || [],
         createdBy: data.driverId,
         updatedBy: data.driverId
     };
@@ -86,6 +84,75 @@ module.exports.createDocument = async (data) => {
     logger.info("END: driver document created");
     return document;
 };
+
+/**
+ * =========================
+ * GET ALL DOCUMENTS (LOGGED-IN DRIVER)
+ * =========================
+ */
+module.exports.getMyDocuments = async (loggedInDriver) => {
+    logger.info("START: get logged-in driver documents");
+
+    if (!loggedInDriver) {
+        throw new AppError(401, "Unauthorized: driver not logged in");
+    }
+
+    const condition = { driverId: loggedInDriver._id };
+
+    const populateQuery = [
+        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "createdBy", select: ["_id", "username", "accountType"] },
+        { path: "updatedBy", select: ["_id", "username", "accountType"] },
+        // { path: "verifiedBy", select: ["_id", "username", "accountType"] }
+    ];
+
+    const documents = await this.findAllRecord(
+        condition,
+        "-__v",
+        populateQuery
+    );
+
+    logger.info("END: get logged-in driver documents");
+    return documents;
+};
+
+/**
+ * =========================
+ * GET SINGLE DOCUMENT (LOGGED-IN DRIVER)
+ * =========================
+ */
+module.exports.getMyDocumentById = async (documentId, loggedInDriver) => {
+    logger.info("START: get single driver document");
+
+    if (!loggedInDriver) {
+        throw new AppError(401, "Unauthorized: driver not logged in");
+    }
+
+    if (!documentId) {
+        throw new AppError(400, "documentId is required");
+    }
+
+    const populateQuery = [
+        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "createdBy", select: ["_id", "username", "accountType"] },
+        { path: "updatedBy", select: ["_id", "username", "accountType"] },
+        // { path: "verifiedBy", select: ["_id", "username", "accountType"] }
+    ];
+
+    const document = await this.findOneRecord(
+        { _id: documentId, driverId: loggedInDriver._id },
+        "-__v",
+        populateQuery
+    );
+
+    if (!document) {
+        throw new AppError(404, "Document not found or access denied");
+    }
+
+    logger.info("END: get single driver document");
+    return document;
+};
+
 
 /**
  * =========================
