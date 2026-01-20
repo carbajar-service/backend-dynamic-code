@@ -90,7 +90,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
     return account;
 };
 
-// get all account 
+// get all account new commit
 module.exports.getAllDriverAccounts = async (query) => {
     logger.info("START:Get All Accounts");
     const populateQuery = [
