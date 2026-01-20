@@ -143,3 +143,5 @@ module.exports.updatedWalletBalance = async (body) => {
         wallet: updatedWallet
     };
 };
+
+// creating a new wallet
