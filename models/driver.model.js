@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const paginate = require("mongoose-paginate-v2");
 const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
+const schema = mongoose.Schema;
 
 const driverSchema = new mongoose.Schema(
     {
@@ -9,13 +10,14 @@ const driverSchema = new mongoose.Schema(
         emailOtp: { type: Number, },
         phoneNumber: { type: Number, required: true, unique: true },
         phoneIsVerified: { type: Boolean, default: false },
-        phoneOTP: { type: Number},
+        phoneOTP: { type: Number },
         phoneOTPExpiresAt: { type: Date },
         password: { type: String, required: true },
         accountType: {
             type: String,
             enum: ["individual", "agency"],
         },
+        accountId: { type: schema.Types.ObjectId, ref: "accountDriver", }
     }, { timestamps: true, }
 );
 

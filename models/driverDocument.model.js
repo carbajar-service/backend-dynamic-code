@@ -23,7 +23,7 @@ const driverDocumentSchema = new mongoose.Schema(
         documentImages: [{ image: { type: String } }],
         documentStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
         documentVerification: { type: Boolean, default: false },
-        rejectionReason: { type: String },
+        documentRejectionReason: { type: String },
         verifiedBy: { type: schema.Types.ObjectId },//admin
         verifiedAt: { type: Date },
         createdBy: { type: schema.Types.ObjectId, ref: "driver", },

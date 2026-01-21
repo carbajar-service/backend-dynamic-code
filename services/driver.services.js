@@ -12,6 +12,12 @@ const accountDriverService = require("./accountDriver.service");
 const leadService = require("./lead.service");
 const LeadModel = require("../models/lead.model");
 
+module.exports.updateRecord = async (condition, body) => {
+    const option = { new: true, runValidators: true };
+    const record = await driverModel.findOneAndUpdate(condition, body, option);
+    return record;
+};
+
 // register driver
 module.exports.driverRegister = async (body) => {
     logger.info("driver registration started");

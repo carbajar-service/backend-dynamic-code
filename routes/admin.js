@@ -3,9 +3,17 @@ const adminRouter = express.Router();
 const adminController = require("../controllers/admin.controller");
 // const { catchError } = require("common-function-api")
 const { catchError } = require("../utils/catchError")
+const { authorizePermissions, verifyJWT } = require("../auth/verify");
 
 adminRouter.route("/register").post(catchError(adminController.adminRegister));
 adminRouter.route("/login").post(catchError(adminController.adminLogin));
 adminRouter.route("/refresh-otp").post(catchError(adminController.adminRefreshOtp));
+adminRouter.route("/approved/:accountId").patch(verifyJWT, catchError(adminController.approved));
+adminRouter.route("/user/getAll").get(verifyJWT, catchError(adminController.getAllUsersProfiles));
+adminRouter.route("/user/single/:userId").get(verifyJWT, catchError(adminController.getSingleUserId));
+adminRouter.route("/lead/getAll").get(verifyJWT, catchError(adminController.getAllLeads));
+adminRouter.route("/lead/single/:leadId").get(verifyJWT, catchError(adminController.getSingleLead));
+adminRouter.route("/driver/getAll").get(verifyJWT, catchError(adminController.getAllDriversProfiles));
+adminRouter.route("/driver/single/:accountId").get(verifyJWT, catchError(adminController.getSingleDriver));
 
 module.exports = adminRouter;

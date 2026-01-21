@@ -80,6 +80,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         accountType: "driver"
     }
     await walletService.createWallet(walletPayload, newId);
+    await driverService.updateRecord({ _id: loggedInDriver._id }, { accountId: record._id })
     const populateQuery = [
         { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "walletId", select: ["_id", "balance"] },
@@ -227,7 +228,11 @@ module.exports.getProfile = async (loggedInDriver) => {
                 "vehicleType",
                 "vehicleName",
                 "vehicleNumber",
-                "vehicleStatus"
+                "vehicleStatus",
+                "vehicleBrand",
+                "vehicleModel",
+                "numberOfSeats",
+                "regYear",
             ]
         },
         {
