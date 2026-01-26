@@ -40,6 +40,8 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         "gender",
         "city",
         "state",
+        "pinCode",
+        "address"
     ];
 
     for (const field of requiredFields) {
@@ -66,6 +68,8 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         city: body.city,
         state: body.state,
         profilePicture: body.profilePicture,
+        address: body.address,
+        pinCode: body.pinCode,
         walletId: newId,
     };
 
@@ -233,6 +237,7 @@ module.exports.getProfile = async (loggedInDriver) => {
                 "vehicleModel",
                 "numberOfSeats",
                 "regYear",
+                "vehicleRc"
             ]
         },
         {
@@ -241,7 +246,8 @@ module.exports.getProfile = async (loggedInDriver) => {
                 "_id",
                 "documentType",
                 "documentStatus",
-                "documentVerification"
+                "documentVerification",
+                "documentNumber"
             ]
         },
         {

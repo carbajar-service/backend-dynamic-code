@@ -190,7 +190,8 @@ const driverPopulateQuery = [
             "_id",
             "documentType",
             "documentStatus",
-            "documentVerification"
+            "documentVerification",
+            "documentNumber"
         ]
     },
     {
@@ -420,28 +421,27 @@ module.exports.approveDriverProfileTx = async (accountDriverId, data, adminId) =
 
         // 2️⃣ Safety check when approving
         if (data.status === "approved") {
-            // const pendingVehicles = await vehicleModel.countDocuments({
-            //     driverId,
-            //     vehicleStatus: { $ne: "approved" }
-            // }).session(session);
+            const pendingVehicles = await vehicleModel.countDocuments({
+                driverId,
+                vehicleStatus: { $ne: "approved" }
+            }).session(session);
 
             const pendingDocs = await driverDocumentModel.countDocuments({
                 driverId,
                 documentStatus: { $ne: "approved" }
             }).session(session);
 
-            if (pendingDocs > 0) {
-                throw new AppError(
-                    400,
-                    "All documents must be approved first"
-                );
-            }
+            // if (pendingDocs > 0) {
+            //     throw new AppError(
+            //         400,
+            //         "All documents must be approved first"
+            //     );
+            // }
         }
 
         // 3️⃣ Prepare update payload
         const updatePayload = {
             accountStatus: data.status,
-            profileCompleted: data.status === "approved",
             documentVerification: data.status === "approved",
             reasonForRejection: null,
             verifiedBy: adminId,
@@ -693,6 +693,3 @@ module.exports.assignLeadByAdminToAgency = async (leadId, agencyId, admin) => {
 
 // 12. get all agency's
 // 13. get single agency by id
-// 16. get lead by users
-// 17. get lead by drivers
-// 18. get lead by agency

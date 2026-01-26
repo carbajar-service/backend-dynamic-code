@@ -9,25 +9,25 @@ driverRouter.route("/login").post(catchError(driverController.driverLogin));
 driverRouter.route("/refresh-otp").post(catchError(driverController.driverRefreshOtp));
 
 driverRouter.route("/matchingLeads")
-    .get(verifyJWT, authorizePermissions("driver"), catchError(driverController.getDriverMatchingLeads));
+    .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.getDriverMatchingLeads));
 
 driverRouter.route("/accept/:leadId")
-    .patch(verifyJWT, authorizePermissions("driver"), catchError(driverController.acceptLeadByDriver));
+    .patch(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.acceptLeadByDriver));
 
 driverRouter.route("/started/:leadId")
-    .patch(verifyJWT, authorizePermissions("driver"), catchError(driverController.startRideByDriver));
+    .patch(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.startRideByDriver));
 
 driverRouter.route("/cancelled/:leadId")
-    .patch(verifyJWT, authorizePermissions("driver"), catchError(driverController.cancelRideByDriver));
+    .patch(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.cancelRideByDriver));
 
 driverRouter.route("/completed/:leadId")
-    .patch(verifyJWT, authorizePermissions("driver"), catchError(driverController.completeRideByDriver));
+    .patch(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.completeRideByDriver));
 
 driverRouter.route("/driverhistory")
-    .get(verifyJWT, authorizePermissions("driver"), catchError(driverController.getDriverHistory));
+    .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.getDriverHistory));
 
 driverRouter.route("/earning")
-    .get(verifyJWT, authorizePermissions("driver"), catchError(driverController.getDriverEarnings));
+    .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.getDriverEarnings));
 
 
 module.exports = driverRouter;

@@ -12,6 +12,8 @@ const accountDriverSchema = new schema(
         gender: { type: String, enum: ["male", "female", "other"], required: true },
         city: { type: String, required: true },
         state: { type: String, required: true },
+        pinCode: { type: String, required: true },
+        address: { type: String, required: true },
         driverId: { type: schema.Types.ObjectId, ref: "driver", required: true },
         walletId: { type: schema.Types.ObjectId, ref: "wallet", },
         vehiclesId: [{ type: schema.Types.ObjectId, ref: "vehicle", }],
