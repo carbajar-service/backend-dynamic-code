@@ -19,6 +19,8 @@ adminRouter.route("/vehicle/getAll").get(verifyJWT, catchError(adminController.g
 adminRouter.route("/vehicle/single/:vehicleId").get(verifyJWT, catchError(adminController.getSingleVehicleId));
 adminRouter.route("/document/getAll").get(verifyJWT, catchError(adminController.getAllDocuments));
 adminRouter.route("/document/single/:documentId").get(verifyJWT, catchError(adminController.getSingleDocument));
+adminRouter.route("/agency/getAll").get(verifyJWT, catchError(adminController.getAllAgency));
+adminRouter.route("/agency/single/:agencyId").get(verifyJWT, catchError(adminController.getSingleAgency));
 
 adminRouter.patch(
     "/vehicle/approve-reject/:vehicleId",

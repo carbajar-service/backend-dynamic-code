@@ -693,3 +693,36 @@ module.exports.assignLeadByAdminToAgency = async (leadId, agencyId, admin) => {
 
 // 12. get all agency's
 // 13. get single agency by id
+
+// get all driver
+module.exports.getAllAgencyProfiles = async (query) => {
+    logger.info("Get All Agency Profiles");
+
+    // 🔑 Force agency filter
+    const filterQuery = {
+        ...query,
+        profileType: "agency"
+    };
+
+    const record = await new APIFeatures(filterQuery)
+        .filter()
+        .orRegexMultipleSearch("searchFilter")
+        .sort()
+        .paginate()
+        .populate(driverPopulateQuery)
+        .exec(accountDriverModel);
+    return record.data;
+};
+
+
+// get single driver by id
+module.exports.getSingleAgency = async (agencyId) => {
+    logger.info("START:Get only one agency");
+    const condition = {
+        _id: agencyId,
+        profileType: "agency"
+    }
+    const agency = await accountDriverModel.findOne(condition).populate(driverPopulateQuery);
+    if (!agency) throw new AppError(404, "Agency not found")
+    return agency;
+};

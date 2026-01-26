@@ -176,6 +176,21 @@ module.exports.getAllDocuments = async (req, res) => {
     logger.data(data);
     return responser.send(200, "Successfully documents fetched by admin", req, res, data);
 };
+// get single agency
+module.exports.getSingleAgency = async (req, res) => {
+    logger.info("getSingleagency");
+    const data = await adminService.getSingleAgency(req.params.agencyId);
+    logger.data(data);
+    return responser.send(200, "Successfully single agency fetched by admin", req, res, data);
+};
+
+// get all driver document
+module.exports.getAllAgency = async (req, res) => {
+    logger.info("getAllAagency");
+    const data = await adminService.getAllAgencyProfiles(req.query);
+    logger.data(data);
+    return responser.send(200, "Successfully agencies fetched by admin", req, res, data);
+};
 
 module.exports.assignLeadToDriver = async (req, res) => {
     logger.info("Controller: Admin assign lead to driver");

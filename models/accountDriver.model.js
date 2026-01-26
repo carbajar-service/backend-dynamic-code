@@ -26,7 +26,7 @@ const accountDriverSchema = new schema(
         reasonForRejection: { type: String },
         profileCompleted: { type: Boolean, default: false },
         documentVerification: { type: Boolean, default: false },
-        driverType: { type: String, enum: ["individual", "agency"] },
+        profileType: { type: String, enum: ["individual", "agency"] },
         verifiedBy: { type: schema.Types.ObjectId },//admin
         verifiedAt: { type: Date },
         createdBy: { type: schema.Types.ObjectId, ref: "driver" },

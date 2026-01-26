@@ -9,9 +9,6 @@ const mongoose = require("mongoose");
 const appEventEmitter = require("../utils/eventEmitter");
 const { EVENTS } = require("../utils/events");
 
-// Generate a new Mongo ObjectId
-const newId = new mongoose.mongo.ObjectId();
-
 module.exports.createRecord = async (object) => {
     const record = await accountDriverModel.create(object);
     return record;
@@ -41,7 +38,8 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         "city",
         "state",
         "pinCode",
-        "address"
+        "address",
+        "profileType"
     ];
 
     for (const field of requiredFields) {
@@ -49,6 +47,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
             throw new AppError(400, `${field} is required`);
         }
     }
+    const walletId = new mongoose.Types.ObjectId();
     const accountExists = await this.findOneRecord({ driverId: loggedInDriver?._id });
     if (accountExists) {
         throw new AppError(409, "Already Account Exists.You Can't Create Account")
@@ -70,7 +69,8 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         profilePicture: body.profilePicture,
         address: body.address,
         pinCode: body.pinCode,
-        walletId: newId,
+        walletId: walletId,
+        profileType: body.profileType
     };
 
     // Optional fields
@@ -83,7 +83,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         accountDriverId: record?._id,
         accountType: "driver"
     }
-    await walletService.createWallet(walletPayload, newId);
+    await walletService.createWallet(walletPayload, walletId);
     await driverService.updateRecord({ _id: loggedInDriver._id }, { accountId: record._id })
     const populateQuery = [
         { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
