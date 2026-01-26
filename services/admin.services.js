@@ -260,21 +260,140 @@ module.exports.getSingleLead = async (leadId) => {
     return lead;
 };
 
-// 10. get all users counts
-// 11. get all drivers counts
-// 12. get all agency's
-// 13. get single agency by id
-// 16. get lead by users
-// 17. get lead by drivers
-// 18. get lead by agency
-// 19. filter api for lead
-// 20. assign lead to driver or agency
-// 21. assign/remove lead 
+// accept vehicle 
+module.exports.approveVehicleTx = async (vehicleId, data, adminId) => {
+    logger.info("START: Approve vehicle (TX)");
+    if (!vehicleId) {
+        throw new AppError(400, "vehicleId is required");
+    }
+    if (!["approved", "rejected"].includes(data.status)) {
+        throw new AppError(400, "Invalid status value");
+    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        // 1️⃣ Fetch vehicle
+        const vehicle = await vehicleModel
+            .findOne({ _id: vehicleId })
+            .session(session);
+        if (!vehicle) {
+            throw new AppError(404, "Vehicle not found");
+        }
 
-// 7. approve driver profile / get 
-// TODO
-module.exports.approveDriverFullProfileTx = async (accountDriverId, data, adminId) => {
-    logger.info("START: Approve full driver profile (TX)");
+        // 2️⃣ Prepare update payload
+        const updatePayload = {
+            vehicleStatus: data.status,
+            verifiedBy: adminId,
+            verifiedAt: new Date(),
+        };
+
+        if (data.status === "rejected") {
+            if (!data.vehicleRejectionReason) {
+                throw new AppError(400, "vehicleRejectionReason is required");
+            }
+            updatePayload.vehicleRejectionReason = data.vehicleRejectionReason;
+        }
+
+        // 3️⃣ Update vehicle
+        await vehicleModel.findOneAndUpdate(
+            { _id: vehicle._id },
+            { $set: updatePayload },
+            { session, new: true }
+        );
+
+        // 4️⃣ Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        logger.info("END: Vehicle approval committed");
+
+        return {
+            message: `Vehicle ${data.status} successfully`,
+            vehicleId,
+            status: data.status,
+            verifiedBy: adminId
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        logger.error("TX FAILED: Vehicle approval rolled back", error);
+        throw error;
+    }
+};
+
+// accept docs
+module.exports.approveDocumentTx = async (documentId, data, adminId) => {
+    logger.info("START: Approve document (TX)");
+
+    if (!documentId) {
+        throw new AppError(400, "documentId is required");
+    }
+
+    if (!["approved", "rejected"].includes(data.status)) {
+        throw new AppError(400, "Invalid status value");
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // 1️⃣ Fetch document
+        const document = await driverDocumentModel
+            .findOne({ _id: documentId })
+            .session(session);
+
+        if (!document) {
+            throw new AppError(404, "Document not found");
+        }
+
+        // 2️⃣ Prepare update payload
+        const updatePayload = {
+            documentStatus: data.status,
+            documentVerification: data.status === "approved",
+            verifiedBy: adminId,
+            verifiedAt: new Date()
+        };
+
+        // If rejected → reason is mandatory
+        if (data.status === "rejected") {
+            if (!data.documentRejectionReason) {
+                throw new AppError(400, "documentRejectionReason is required");
+            }
+            updatePayload.documentRejectionReason = data.documentRejectionReason;
+        }
+
+        // 3️⃣ Update document
+        await driverDocumentModel.findOneAndUpdate(
+            { _id: document._id },
+            { $set: updatePayload },
+            { session, new: true }
+        );
+
+        // 4️⃣ Commit
+        await session.commitTransaction();
+        session.endSession();
+
+        logger.info("END: Document approval committed");
+
+        return {
+            message: `Document ${data.status} successfully`,
+            documentId,
+            status: data.status,
+            verifiedBy: adminId
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        logger.error("TX FAILED: Document approval rolled back", error);
+        throw error;
+    }
+};
+
+// accept profile
+module.exports.approveDriverProfileTx = async (accountDriverId, data, adminId) => {
+    logger.info("START: Approve driver profile (TX)");
 
     if (!accountDriverId) {
         throw new AppError(400, "accountDriverId is required");
@@ -288,11 +407,9 @@ module.exports.approveDriverFullProfileTx = async (accountDriverId, data, adminI
     session.startTransaction();
 
     try {
-        /* ======================================================
-           FETCH DRIVER ACCOUNT
-        ====================================================== */
+        // 1️⃣ Fetch account driver
         const accountDriver = await accountDriverModel
-            .findById(accountDriverId)
+            .findOne({ _id: accountDriverId })
             .session(session);
 
         if (!accountDriver) {
@@ -301,99 +418,135 @@ module.exports.approveDriverFullProfileTx = async (accountDriverId, data, adminI
 
         const driverId = accountDriver.driverId;
 
-        /* ======================================================
-           OPTIONAL SAFETY CHECK (ONLY WHEN APPROVING)
-        ====================================================== */
+        // 2️⃣ Safety check when approving
         if (data.status === "approved") {
-            const pendingVehicles = await vehicleModel.countDocuments({
-                driverId,
-                vehicleStatus: { $ne: "approved" }
-            }).session(session);
+            // const pendingVehicles = await vehicleModel.countDocuments({
+            //     driverId,
+            //     vehicleStatus: { $ne: "approved" }
+            // }).session(session);
 
             const pendingDocs = await driverDocumentModel.countDocuments({
                 driverId,
                 documentStatus: { $ne: "approved" }
             }).session(session);
 
-            if (pendingVehicles > 0 || pendingDocs > 0) {
+            if (pendingDocs > 0) {
                 throw new AppError(
                     400,
-                    "All vehicles and documents must be approved first"
+                    "All documents must be approved first"
                 );
             }
         }
 
-        /* ======================================================
-           1️⃣ UPDATE VEHICLES (ALL)
-        ====================================================== */
-        await vehicleModel.updateMany(
-            { driverId },
-            {
-                $set: {
-                    vehicleStatus: data.status,
-                    rejectionReason:
-                        data.status === "rejected" ? data.rejectionReason : null
-                }
-            },
-            { session }
+        // 3️⃣ Prepare update payload
+        const updatePayload = {
+            accountStatus: data.status,
+            profileCompleted: data.status === "approved",
+            documentVerification: data.status === "approved",
+            reasonForRejection: null,
+            verifiedBy: adminId,
+            verifiedAt: new Date(),
+        };
+
+        // Rejection reason mandatory if rejected
+        if (data.status === "rejected") {
+            if (!data.rejectionReason) {
+                throw new AppError(400, "rejectionReason is required");
+            }
+            updatePayload.reasonForRejection = data.rejectionReason;
+        }
+
+        // 4️⃣ Update account driver
+        await accountDriverModel.findOneAndUpdate(
+            { _id: accountDriverId },
+            { $set: updatePayload },
+            { session, new: true }
         );
 
-        /* ======================================================
-           2️⃣ UPDATE DOCUMENTS (ALL)
-        ====================================================== */
-        await driverDocumentModel.updateMany(
-            { driverId },
-            {
-                $set: {
-                    documentStatus: data.status,
-                    documentVerification: true,
-                    rejectionReason:
-                        data.status === "rejected" ? data.rejectionReason : null,
-                    verifiedBy: adminId,
-                    verifiedAt: new Date()
-                }
-            },
-            { session }
-        );
-
-        /* ======================================================
-           3️⃣ UPDATE DRIVER PROFILE (FINAL DECISION)
-        ====================================================== */
-        await accountDriverModel.findByIdAndUpdate(
-            accountDriverId,
-            {
-                $set: {
-                    accountStatus: data.status,
-                    documentVerification: true,
-                    documentRejectionReason:
-                        data.status === "rejected" ? data.documentRejectionReason : null
-                }
-            },
-            { session }
-        );
-
-        /* ======================================================
-           COMMIT
-        ====================================================== */
+        // 5️⃣ Commit transaction
         await session.commitTransaction();
         session.endSession();
 
-        logger.info("END: Full driver approval committed");
+        logger.info("END: Driver profile approval committed");
 
         return {
-            message: `Driver ${data.status} successfully`,
+            message: `Driver profile ${data.status} successfully`,
             driverId,
-            status: data.status
+            status: data.status,
+            verifiedBy: adminId
         };
 
     } catch (error) {
-        /* ======================================================
-           ROLLBACK
-        ====================================================== */
         await session.abortTransaction();
         session.endSession();
-
-        logger.error("TX FAILED: Driver approval rolled back", error);
+        logger.error("TX FAILED: Driver profile approval rolled back", error);
         throw error;
     }
 };
+
+// get all vehicles
+module.exports.getAllVehicles = async (query) => {
+    logger.info(`Get All Vehicles Public`);
+    const populateQuery = [
+        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const record = await new APIFeatures(query)
+        .filter()
+        .orRegexMultipleSearch("searchFilter")
+        .sort()
+        .paginate()
+        .populate(populateQuery)
+        .exec(vehicleModel);
+    return record.data;
+};
+
+// get single vehicle by id
+module.exports.getSingleVehicle = async (vehicleId) => {
+    logger.info("START:Get only one vehicle");
+    const populateQuery = [
+        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const vehicle = await vehicleModel.findOne({ _id: vehicleId }).populate(populateQuery);
+    if (!vehicle) throw new AppError(404, "Vehicle not found")
+    return vehicle;
+};
+
+// get all Document
+module.exports.getAllDocuments = async (query) => {
+    logger.info(`Get All Vehicles Public`);
+    const populateQuery = [
+        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const record = await new APIFeatures(query)
+        .filter()
+        .orRegexMultipleSearch("searchFilter")
+        .sort()
+        .paginate()
+        .populate(populateQuery)
+        .exec(driverDocumentModel);
+    return record.data;
+};
+
+// get single document by id
+module.exports.getSingleDocument = async (documentId) => {
+    logger.info("START:Get only one document");
+    const populateQuery = [
+        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const document = await driverDocumentModel.findOne({ _id: documentId }).populate(populateQuery);
+    if (!document) throw new AppError(404, "Document not found")
+    return document;
+};
+
+// 12. get all agency's
+// 13. get single agency by id
+// 16. get lead by users
+// 17. get lead by drivers
+// 18. get lead by agency
+// 19. filter api for lead
+// 20. assign lead to driver or agency
+// 21. assign/remove lead 

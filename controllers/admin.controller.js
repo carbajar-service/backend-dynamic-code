@@ -74,12 +74,105 @@ module.exports.getSingleLead = async (req, res) => {
     return responser.send(200, "Successfully single lead fetched by admin", req, res, data);
 };
 
-// TODO
-module.exports.approved = async (req, res) => {
-    logger.info("Refresh Otp");
+module.exports.approveVehicle = async (req, res) => {
+    logger.info("Controller: Approve Vehicle");
+
+    const { vehicleId } = req.params;
     const reqData = req.body;
-    const loggedIn = req.adminId;
-    const data = await adminService.approveDriverFullProfileTx(req.params.accountId, reqData, loggedIn);
+    const admin = req.admin; // from verifyJWT
+    const data = await adminService.approveVehicleTx(
+        vehicleId,
+        reqData,
+        admin._id
+    );
+    logger.data("Vehicle approval success", data);
+    return responser.send(
+        200,
+        `Vehicle ${reqData.status} successfully`,
+        req,
+        res,
+        data
+    );
+};
+
+/**
+ * ======================================================
+ * APPROVE / REJECT DOCUMENT
+ * ======================================================
+ */
+module.exports.approveDocument = async (req, res) => {
+    logger.info("Controller: Approve Document");
+    const { documentId } = req.params;
+    const reqData = req.body;
+    const admin = req.admin;
+    const data = await adminService.approveDocumentTx(
+        documentId,
+        reqData,
+        admin._id
+    );
+    logger.data("Document approval success", data);
+    return responser.send(
+        200,
+        `Document ${reqData.status} successfully`,
+        req,
+        res,
+        data
+    );
+};
+
+/**
+ * ======================================================
+ * APPROVE / REJECT DRIVER PROFILE
+ * ======================================================
+ */
+module.exports.approveDriverProfile = async (req, res) => {
+    logger.info("Controller: Approve Driver Profile");
+    const { accountDriverId } = req.params;
+    const reqData = req.body;
+    const admin = req.admin;
+    const data = await adminService.approveDriverProfileTx(
+        accountDriverId,
+        reqData,
+        admin._id
+    );
+    logger.data("Driver profile approval success", data);
+    return responser.send(
+        200,
+        `Driver profile ${reqData.status} successfully`,
+        req,
+        res,
+        data
+    );
+};
+
+// get single vehicle
+module.exports.getSingleVehicleId = async (req, res) => {
+    logger.info("getSingleUserId");
+    const data = await adminService.getSingleVehicle(req.params.vehicleId);
     logger.data(data);
-    return responser.send(200, "Successfully account approved by admin", req, res, data);
+    return responser.send(200, "Successfully single vehicle fetched by admin", req, res, data);
+};
+
+// get all driver vehicle
+module.exports.getAllVehicles = async (req, res) => {
+    logger.info("getAllVehicles");
+    const data = await adminService.getAllVehicles(req.query);
+    logger.data(data);
+    return responser.send(200, "Successfully vehicles fetched by admin", req, res, data);
+};
+
+// get single document
+module.exports.getSingleDocument = async (req, res) => {
+    logger.info("getSingleDocument");
+    const data = await adminService.getSingleDocument(req.params.documentId);
+    logger.data(data);
+    return responser.send(200, "Successfully single document fetched by admin", req, res, data);
+};
+
+// get all driver document
+module.exports.getAllDocuments = async (req, res) => {
+    logger.info("getAllDocuments");
+    const data = await adminService.getAllDocuments(req.query);
+    logger.data(data);
+    return responser.send(200, "Successfully documents fetched by admin", req, res, data);
 };

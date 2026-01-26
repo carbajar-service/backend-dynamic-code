@@ -15,5 +15,30 @@ adminRouter.route("/lead/getAll").get(verifyJWT, catchError(adminController.getA
 adminRouter.route("/lead/single/:leadId").get(verifyJWT, catchError(adminController.getSingleLead));
 adminRouter.route("/driver/getAll").get(verifyJWT, catchError(adminController.getAllDriversProfiles));
 adminRouter.route("/driver/single/:accountId").get(verifyJWT, catchError(adminController.getSingleDriver));
+adminRouter.route("/vehicle/getAll").get(verifyJWT, catchError(adminController.getAllVehicles));
+adminRouter.route("/vehicle/single/:vehicleId").get(verifyJWT, catchError(adminController.getSingleVehicleId));
+adminRouter.route("/document/getAll").get(verifyJWT, catchError(adminController.getAllDocuments));
+adminRouter.route("/document/single/:documentId").get(verifyJWT, catchError(adminController.getSingleDocument));
+
+adminRouter.patch(
+    "/vehicle/approve-reject/:vehicleId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.approveVehicle)
+);
+
+adminRouter.patch(
+    "/document/approve-reject/:documentId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.approveDocument)
+);
+
+adminRouter.patch(
+    "/driver/approve-reject/:accountDriverId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.approveDriverProfile)
+);
 
 module.exports = adminRouter;

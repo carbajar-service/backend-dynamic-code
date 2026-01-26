@@ -17,8 +17,9 @@ const vehicleSchema = new mongoose.Schema(
         vehicleModel: { type: String, required: true },
         numberOfSeats: { type: String, },
         regYear: { type: String, required: true },
-        verifiedBy: { type: schema.Types.ObjectId },//admin
+        verifiedBy: { type: schema.Types.ObjectId,ref: "admin", },//admin
         verifiedAt: { type: Date },
+        vehicleRejectionReason: { type: String },
         createdBy: { type: schema.Types.ObjectId, ref: "driver" },
         updatedBy: { type: schema.Types.ObjectId, ref: "driver" }
     },
