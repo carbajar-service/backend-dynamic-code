@@ -41,4 +41,17 @@ adminRouter.patch(
     catchError(adminController.approveDriverProfile)
 );
 
+adminRouter.patch(
+    "/lead/assign/:leadId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.assignLeadToDriver)
+);
+adminRouter.patch(
+    "/lead/unassign/:leadId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.unassignLead)
+);
+
 module.exports = adminRouter;

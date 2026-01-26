@@ -542,11 +542,157 @@ module.exports.getSingleDocument = async (documentId) => {
     return document;
 };
 
+// assign/remove lead 
+// 2.accept ride by driver
+module.exports.assignLeadByAdminToDriver = async (leadId, driverId, admin) => {
+    logger.info("START: Admin assign lead to driver");
+
+    if (!leadId || !driverId) {
+        throw new AppError(400, "leadId and driverId are required");
+    }
+
+    // 1️⃣ Fetch lead
+    const lead = await leadModel.findOne({ _id: leadId });
+    if (!lead) {
+        throw new AppError(404, "Lead not found");
+    }
+
+    // 2️⃣ Prevent assigning cancelled / completed leads
+    if (["CANCELLED", "COMPLETED"].includes(lead.leadStatus)) {
+        throw new AppError(400, `Cannot assign a ${lead.leadStatus} lead`);
+    }
+
+    // 3️⃣ Prevent reassignment if already confirmed
+    if (lead.leadStatus === "CONFIRMED") {
+        throw new AppError(400, "Lead already confirmed by driver");
+    }
+
+    // 4️⃣ Admin assigns lead (NOT confirming)
+    const updateData = {
+        $set: {
+            leadStatus: "CONFIRMED", // remains same
+            // updatedBy: admin._id,
+            "assign.driverId": driverId,
+            "assign.assignedAt": new Date(),
+            "assign.assignmentStatus": "pending",
+            "assign.assignType": "admin"
+        }
+    };
+
+    await leadModel.findOneAndUpdate({ _id: leadId }, updateData, { new: true });
+
+    // 5️⃣ Populate response
+    const populateQuery = [
+        { path: "userId", select: ["_id", "username", "phoneNumber"] },
+        { path: "assign.driverId", select: ["_id", "username", "phoneNumber"] }
+    ];
+
+    const updatedLead = await leadModel
+        .findOne({ _id: leadId })
+        .select("-__v -cancellationHistory -rejectionHistory")
+        .populate(populateQuery)
+    logger.info("END: Admin assigned lead to driver successfully");
+
+    return updatedLead;
+};
+
+module.exports.unassignLeadByAdmin = async (leadId, admin) => {
+    logger.info("START: Admin unassign lead");
+    if (!leadId) {
+        throw new AppError(400, "leadId is required");
+    }
+    // 1️⃣ Fetch lead
+    const lead = await leadModel.findOne({ _id: leadId });
+    if (!lead) {
+        throw new AppError(404, "Lead not found");
+    }
+
+    // 2️⃣ Validate current state
+    if (!lead.assign?.driverId) {
+        throw new AppError(400, "Lead is not assigned to any driver");
+    }
+
+    if (["CANCELLED", "COMPLETED"].includes(lead.leadStatus)) {
+        throw new AppError(400, `Cannot unassign a ${lead.leadStatus} lead`);
+    }
+
+    // 3️⃣ Unassign (schema-aligned)
+    const updateData = {
+        $set: {
+            leadStatus: "NEW-LEAD",
+            updatedBy: admin._id,
+            "assign.driverId": null,
+            "assign.assignedAt": null,
+            "assign.assignmentStatus": "pending",
+            "assign.assignType": "admin"
+        }
+    };
+
+    await leadModel.findOneAndUpdate({ _id: leadId }, updateData, { new: true });
+
+    // 4️⃣ Return updated lead (optional populate)
+    const populateQuery = [
+        { path: "userId", select: ["_id", "username", "phoneNumber"] }
+    ];
+
+    const updatedLead = await leadModel
+        .findOne({ _id: leadId })
+        .select("-__v -cancellationHistory -rejectionHistory")
+        .populate(populateQuery)
+    logger.info("END: Admin unassigned lead successfully");
+
+    return updatedLead;
+};
+
+module.exports.assignLeadByAdminToAgency = async (leadId, agencyId, admin) => {
+    logger.info("START: Admin assign lead to agency");
+
+    if (!leadId || !agencyId) {
+        throw new AppError(400, "leadId and agencyId are required");
+    }
+
+    const lead = await leadModel.findOne({ _id: leadId });
+    if (!lead) {
+        throw new AppError(404, "Lead not found");
+    }
+
+    // Prevent assignment if already confirmed
+    if (lead.leadStatus === "CONFIRMED") {
+        throw new AppError(400, "Lead already confirmed");
+    }
+
+    const updateData = {
+        $set: {
+            leadStatus: "ASSIGNED",
+            updatedBy: admin._id,
+            "assign.agencyId": agencyId,
+            "assign.driverId": null,
+            "assign.assignedAt": new Date(),
+            "assign.assignmentStatus": "assigned",
+            "assign.assignType": "admin"
+        }
+    };
+
+    await leadService.updateRecord({ _id: leadId }, updateData);
+
+    const populateQuery = [
+        { path: "userId", select: ["_id", "username", "phoneNumber"] },
+        { path: "assign.agencyId", select: ["_id", "agencyName", "phoneNumber"] }
+    ];
+
+    const updatedLead = await leadService.findOneRecord(
+        { _id: leadId },
+        "-__v -cancellationHistory -rejectionHistory",
+        populateQuery
+    );
+
+    logger.info("END: Admin assigned lead to agency");
+
+    return updatedLead;
+};
+
 // 12. get all agency's
 // 13. get single agency by id
 // 16. get lead by users
 // 17. get lead by drivers
 // 18. get lead by agency
-// 19. filter api for lead
-// 20. assign lead to driver or agency
-// 21. assign/remove lead 

@@ -42,7 +42,7 @@ const leadSchema = new schema(
             },
             assignType: {
                 type: String,
-                enum: ["auto", "manual"],
+                enum: ["auto", "manual","admin"],
                 default: "auto"
             }
         },

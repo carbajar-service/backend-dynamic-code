@@ -176,3 +176,48 @@ module.exports.getAllDocuments = async (req, res) => {
     logger.data(data);
     return responser.send(200, "Successfully documents fetched by admin", req, res, data);
 };
+
+module.exports.assignLeadToDriver = async (req, res) => {
+    logger.info("Controller: Admin assign lead to driver");
+    const { leadId } = req.params;
+    const { driverId } = req.body;
+    const admin = req.admin; // from verifyJWT
+
+    const data = await adminService.assignLeadByAdminToDriver(
+        leadId,
+        driverId,
+        admin
+    );
+
+    logger.data("Lead assigned to driver successfully", data);
+
+    return responser.send(
+        200,
+        "Lead assigned to driver successfully",
+        req,
+        res,
+        data
+    );
+};
+
+module.exports.unassignLead = async (req, res) => {
+    logger.info("Controller: Admin unassign lead");
+
+    const { leadId } = req.params;
+    const admin = req.admin; // from verifyJWT
+
+    const data = await adminService.unassignLeadByAdmin(
+        leadId,
+        admin
+    );
+
+    logger.data("Lead unassigned successfully", data);
+
+    return responser.send(
+        200,
+        "Lead unassigned successfully",
+        req,
+        res,
+        data
+    );
+};
