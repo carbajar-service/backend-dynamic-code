@@ -38,7 +38,7 @@ module.exports.generateLeadId = () => {
 
 // 1. Create Lead
 module.exports.createLead = async (body) => {
-    logger.info("START: Creating Lead");
+    logger.info("START: Creating Lead.....");
     const requiredFields = [
         "tripType",
         "locations",

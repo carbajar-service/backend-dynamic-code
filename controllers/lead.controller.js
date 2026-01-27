@@ -8,7 +8,7 @@ class LeadController {
     createLead = async (req, res) => {
         const reqData = req.body;
         reqData.userId = req.userId;
-        console.log(reqData);
+        // console.log(reqData);
         const result = await leadService.createLead(reqData);
         logger.info(result);
         return responser.send(201, "Lead Created Successfully", req, res, result);

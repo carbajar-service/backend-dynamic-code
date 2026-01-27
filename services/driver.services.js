@@ -10,6 +10,7 @@ const { generateOTP, generateUniqueUsername } = require('../utils/utils');
 const sms = require('./sms/fast2sms');
 const accountDriverService = require("./accountDriver.service");
 const leadService = require("./lead.service");
+const vehicleService = require("./vehicle.service");
 const LeadModel = require("../models/lead.model");
 
 module.exports.updateRecord = async (condition, body) => {
@@ -177,38 +178,116 @@ module.exports.refreshOtp = async (body) => {
 // get DriverProfile
 
 // 1.driver Matching Leads
+// module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
+//     logger.info("Start:Get Driver Matching Ride");
+//     const driverPayload = {
+//         driverId: loggedInDriver?._id,
+//         accountStatus: "approved",
+//         profileCompleted: true
+//     }
+//     const driverAccount = await accountDriverService.findOneRecord(driverPayload, "city state  vehicleType");
+//     console.log("aa", driverAccount);
+
+//     if (!driverAccount) {
+//         throw new AppError(403, "Driver account not approved or not found");
+//     }
+//     const vehicle = await vehicleService.findOneRecord({ driverId: loggedInDriver?._id });
+//     console.log("vehicle", vehicle);
+//     const now = new Date();
+//     const condition = {
+//         userCity: driverAccount.city,
+//         vehicleType: driverAccount.vehicleType,
+//         leadStatus: "NEW-LEAD",
+//         showFlag: true,
+//         // pickUpDate: { $gte: now.toISOString().split("T")[0] }, // Future or today pickups only
+//         "assign.driverId": { $exists: false } // Ensure not already taken
+//     };
+
+//     console.log("con", condition);
+//     const populateData = [
+//         { path: "userId", select: ["_id", "username", "phoneNumber"] }
+//     ]
+//     const leads = await leadService.findAllRecord(condition, "-__v -cancellationHistory -rejectionHistory", populateData);
+//     console.log("lead", leads);
+
+//     return leads;
+// };
+
 module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
-    logger.info("Start:Get Driver Matching Ride");
-    const driverPayload = {
-        driverId: loggedInDriver?._id,
-        accountStatus: "approved",
-        profileCompleted: true
-    }
-    const driverAccount = await accountDriverService.findOneRecord(driverPayload, "city state  vehicleType");
-    console.log("aa", driverAccount);
+    logger.info("START: Get Driver Matching Leads (Multi-Vehicle)");
+
+    // 1️⃣ Validate approved driver account
+    const driverAccount = await accountDriverService.findOneRecord(
+        {
+            driverId: loggedInDriver._id,
+            accountStatus: "approved",
+            profileCompleted: true
+        },
+        "city state"
+    );
+    console.log("driver", driverAccount);
+
 
     if (!driverAccount) {
         throw new AppError(403, "Driver account not approved or not found");
     }
+
+    // 2️⃣ Fetch ALL approved vehicles
+    const vehicles = await vehicleService.findAllRecord({
+        driverId: loggedInDriver._id,
+        vehicleStatus: "approved"
+    });
+
+    console.log("vehicles", vehicles);
+
+    if (!vehicles || vehicles.length === 0) {
+        throw new AppError(403, "No approved vehicles found");
+    }
+
+    // 3️⃣ Extract vehicle types
+    const vehicleTypes = vehicles
+        .map(v => v.vehicleType)
+        .filter(Boolean);
+    console.log("vehicleTypes", vehicleTypes);
+
+    if (vehicleTypes.length === 0) {
+        throw new AppError(403, "Approved vehicles have no vehicle type");
+    }
+
+    // 4️⃣ Date filter (future pickups only)
     const now = new Date();
+
+    // 5️⃣ Lead matching condition (MULTI-VEHICLE FIX)
     const condition = {
         userCity: driverAccount.city,
-        vehicleType: driverAccount.vehicleType,
+        vehicleType: { $in: vehicleTypes },
         leadStatus: "NEW-LEAD",
         showFlag: true,
-        // pickUpDate: { $gte: now.toISOString().split("T")[0] }, // Future or today pickups only
-        "assign.driverId": { $exists: false } // Ensure not already taken
+        "assign.driverId": { $exists: false } 
+        // pickUpDate: { $gte: now },
+        // $or: [
+        //     { "assign.driverId": { $exists: false } },
+        //     { "assign.driverId": null }
+        // ]
     };
 
-    console.log("con", condition);
+    console.log("condition", condition);
+
     const populateData = [
         { path: "userId", select: ["_id", "username", "phoneNumber"] }
-    ]
-    const leads = await leadService.findAllRecord(condition, "-__v -cancellationHistory -rejectionHistory", populateData);
-    console.log("lead", leads);
+    ];
+
+    const leads = await leadService.findAllRecord(
+        condition,
+        "-__v -cancellationHistory -rejectionHistory",
+        populateData
+    );
+
+    logger.info(`END: Found ${leads.length} matching leads`);
 
     return leads;
 };
+
 
 // 2.accept ride by driver
 module.exports.acceptLeadByDriver = async (leadId, loggedInDriver) => {
