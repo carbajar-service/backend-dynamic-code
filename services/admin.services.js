@@ -691,9 +691,6 @@ module.exports.assignLeadByAdminToAgency = async (leadId, agencyId, admin) => {
     return updatedLead;
 };
 
-// 12. get all agency's
-// 13. get single agency by id
-
 // get all driver
 module.exports.getAllAgencyProfiles = async (query) => {
     logger.info("Get All Agency Profiles");
@@ -725,4 +722,70 @@ module.exports.getSingleAgency = async (agencyId) => {
     const agency = await accountDriverModel.findOne(condition).populate(driverPopulateQuery);
     if (!agency) throw new AppError(404, "Agency not found")
     return agency;
+};
+
+module.exports.updateLeadByAdmin = async (leadId, body) => {
+    logger.info("START: Updating Lead");
+
+    // Ensure lead belongs to user
+    const existingLead = await leadModel.findOne({
+        _id: leadId,
+    });
+
+    if (!existingLead) {
+        throw new AppError(403, "Lead not found!");
+    }
+
+    // Prevent update if pickup time already passed
+    const pickupDateTime = existingLead.pickUpTime
+        ? new Date(existingLead.pickUpTime)
+        : new Date(existingLead.pickUpDate);
+
+    if (pickupDateTime <= new Date()) {
+        throw new AppError(
+            400,
+            "You cannot update this lead because the pickup time has already passed"
+        );
+    }
+
+    // Only allow selected fields to be updated
+    const updatePayload = {
+        updatedAt: new Date()
+    };
+
+    const updatableFields = [
+        "tripType",
+        "locations",
+        "pickUpDate",
+        "pickUpTime",
+        "totalKm",
+        "totalAmount",
+        "vehicleType",
+        "userCity"
+    ];
+
+    updatableFields.forEach(field => {
+        if (body[field] !== undefined) {
+            updatePayload[field] = body[field];
+        }
+    });
+
+    const updatedLead = await leadModel.findOneAndUpdate(
+        { _id: leadId },
+        updatePayload,
+        { new: true, runValidators: true }
+    )
+        .populate([
+            {
+                path: "createdBy",
+                select: ["_id", "username", "accountType", "phoneNumber"]
+            },
+            {
+                path: "updatedBy",
+                select: ["_id", "username", "accountType"]
+            }
+        ]);
+
+    logger.info(`Lead Updated: ${leadId}`);
+    return updatedLead;
 };

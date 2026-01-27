@@ -236,3 +236,25 @@ module.exports.unassignLead = async (req, res) => {
         data
     );
 };
+
+module.exports.updateLeadByAdmin = async (req, res) => {
+    logger.info("Controller: Admin unassign lead");
+
+    const { leadId } = req.params;
+    const admin = req.admin; // from verifyJWT
+
+    const data = await adminService.updateLeadByAdmin(
+        leadId,
+        req.body
+    );
+
+    logger.data("Lead updated successfully", data);
+
+    return responser.send(
+        200,
+        "Lead updated successfully",
+        req,
+        res,
+        data
+    );
+};

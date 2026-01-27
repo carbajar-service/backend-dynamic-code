@@ -55,5 +55,12 @@ adminRouter.patch(
     authorizePermissions("admin"),
     catchError(adminController.unassignLead)
 );
+adminRouter.patch(
+    "/lead/update/:leadId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.updateLeadByAdmin)
+);
+
 
 module.exports = adminRouter;
