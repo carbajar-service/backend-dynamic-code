@@ -65,7 +65,7 @@ module.exports.createVehicle = async (data) => {
 
     // Upload array images if present
     if (Array.isArray(data?.vehicleRcImages) && data.vehicleRcImages.length > 0) {
-        data.vehicleRcImages = await uploadImages(data.vehicleRcImages, "vehicle Rc");
+        data.vehicleRcImages = await uploadImages(data.vehicleRcImages, "vehicleRc");
         if (data.vehicleRcImages.length === 0) {
             throw new AppError(400, "Failed to upload array images for vehicle Rc");
         }

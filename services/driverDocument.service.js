@@ -3,6 +3,7 @@ const logger = require("../utils/logs");
 const AppError = require("../utils/appError");
 const APIFeatures = require("../utils/apiFeature");
 const accountDriverService = require("./accountDriver.service");
+const upload = require("../core/cloudImage");
 
 /**
  * =========================
@@ -63,6 +64,22 @@ module.exports.createDocument = async (data) => {
 
     if (existingDocument) {
         throw new AppError(409, "Document already uploaded");
+    }
+
+    // Utility function to handle array image uploads
+    const uploadImages = async (images, folder) => {
+        const multiPictures = await upload.uploadArrayImage(images, folder);
+        return multiPictures
+            .map(picture => picture?.cloudinaryResponse?.secure_url ? { image: picture?.cloudinaryResponse?.secure_url } : null)
+            .filter(Boolean);
+    };
+
+    // Upload array images if present
+    if (Array.isArray(data?.documentImages) && data.documentImages.length > 0) {
+        data.documentImages = await uploadImages(data.documentImages, "documentImages");
+        if (data.documentImages.length === 0) {
+            throw new AppError(400, "Failed to upload array images for documentImages");
+        }
     }
 
     const payload = {

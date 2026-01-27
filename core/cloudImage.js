@@ -35,7 +35,7 @@ const uploadArrayImage = async (images, folderName) => {
         if (!images || !Array.isArray(images)) return null;
 
         const uploadPromises = images.map(async (imageObj) => {
-            const base64String = imageObj.img;
+            const base64String = imageObj.image;
 
             if (typeof base64String !== 'string') {
                 console.error(`Invalid base64String for imageObj:`, imageObj);
