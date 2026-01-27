@@ -3,6 +3,7 @@ const logger = require("../utils/logs");
 const AppError = require("../utils/appError");
 const APIFeatures = require("../utils/apiFeature");
 const accountDriverService = require("./accountDriver.service");
+const upload = require("../core/cloudImage");
 
 module.exports.createRecord = async (object) => {
     const record = await vehicleModel.create(object);
@@ -52,6 +53,29 @@ module.exports.createVehicle = async (data) => {
 
     if (existingVehicle) {
         throw new AppError(409, "Vehicle already registered");
+    }
+
+    // Utility function to handle array image uploads
+    const uploadImages = async (images, folder) => {
+        const multiPictures = await upload.uploadArrayImage(images, folder);
+        return multiPictures
+            .map(picture => picture?.cloudinaryResponse?.secure_url ? { image: picture?.cloudinaryResponse?.secure_url } : null)
+            .filter(Boolean);
+    };
+
+    // Upload array images if present
+    if (Array.isArray(data?.vehicleRcImages) && data.vehicleRcImages.length > 0) {
+        data.vehicleRcImages = await uploadImages(data.vehicleRcImages, "vehicle Rc");
+        if (data.vehicleRcImages.length === 0) {
+            throw new AppError(400, "Failed to upload array images for vehicle Rc");
+        }
+    }
+    // Upload array images if present
+    if (Array.isArray(data?.vehicleImages) && data.vehicleImages.length > 0) {
+        data.vehicleImages = await uploadImages(data.vehicleImages, "vehicleImages");
+        if (data.vehicleImages.length === 0) {
+            throw new AppError(400, "Failed to upload array images for vehicle Images");
+        }
     }
     // 3 Create vehicle
     const payload = {
