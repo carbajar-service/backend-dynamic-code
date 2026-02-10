@@ -1,4 +1,4 @@
-const accountDriverModel = require("../models/accountDriver.model");
+const accountAgencyModel = require("../models/agencyProfile.model");
 const logger = require("../utils/logs");
 const AppError = require("../utils/appError")
 const driverService = require("./driver.services");
@@ -10,35 +10,37 @@ const appEventEmitter = require("../utils/eventEmitter");
 const { EVENTS } = require("../utils/events");
 
 module.exports.createRecord = async (object) => {
-    const record = await accountDriverModel.create(object);
+    const record = await accountAgencyModel.create(object);
     return record;
 };
 
 module.exports.findOneRecord = async (conditions, select, populateQuery) => {
-    const record = await accountDriverModel.findOne(conditions).select(select).populate(populateQuery);
+    const record = await accountAgencyModel.findOne(conditions).select(select).populate(populateQuery);
     return record;
 };
 
 module.exports.findAllRecord = async (conditions, select, populateQuery) => {
-    const record = await accountDriverModel.find(conditions).select(select).populate(populateQuery);
+    const record = await accountAgencyModel.find(conditions).select(select).populate(populateQuery);
     return record;
 };
 
 module.exports.updateRecord = async (condition, body) => {
     const option = { new: true, runValidators: true };
-    const record = await accountDriverModel.findOneAndUpdate(condition, body, option);
+    const record = await accountAgencyModel.findOneAndUpdate(condition, body, option);
     return record;
 };
 
 // 1 create account
-module.exports.createAccount = async (body, loggedInDriver) => {
+module.exports.createAccount = async (body, loggedInAgency) => {
     logger.info("START: Creating account");
+
     const requiredFields = [
-        "gender",
+        "agencyName",
         "city",
         "state",
         "pinCode",
         "address",
+        "ownerName"
     ];
 
     for (const field of requiredFields) {
@@ -47,7 +49,7 @@ module.exports.createAccount = async (body, loggedInDriver) => {
         }
     }
     const walletId = new mongoose.Types.ObjectId();
-    const accountExists = await this.findOneRecord({ driverId: loggedInDriver?._id });
+    const accountExists = await this.findOneRecord({ agencyId: loggedInAgency?._id });
     if (accountExists) {
         throw new AppError(409, "Already Account Exists.You Can't Create Account")
     }
@@ -58,33 +60,35 @@ module.exports.createAccount = async (body, loggedInDriver) => {
 
     // Prepare payload
     const payloadData = {
-        driverId: loggedInDriver._id,
-        createdBy: loggedInDriver._id,
-        updatedBy: loggedInDriver._id,
-        accountStatus: "pending",
+        agencyId: loggedInAgency._id,
+        createdBy: loggedInAgency._id,
+        updatedBy: loggedInAgency._id,
+        agencyStatus: "pending",
         gender: body.gender,
         city: body.city,
+        ownerName: body.ownerName,
         state: body.state,
         profilePicture: body.profilePicture,
         address: body.address,
         pinCode: body.pinCode,
-        walletId: walletId,
+        agencyName:body.agencyName,
+        walletId: walletId
     };
 
     // Optional fields
-    if (body.firstName) payloadData.firstName = body.firstName;
-    if (body.lastName) payloadData.lastName = body.lastName;
-    if (body.dob) payloadData.dob = body.dob;
+    if (body.gstNumber) payloadData.gstNumber = body.gstNumber;
+    if (body.panNumber) payloadData.panNumber = body.panNumber;
+
     const record = await this.createRecord(payloadData);
     // TODO Create the wallet of the user
     const walletPayload = {
-        accountDriverId: record?._id,
+        accountagencyId: record?._id,
         accountType: "driver"
     }
     await walletService.createWallet(walletPayload, walletId);
-    await driverService.updateRecord({ _id: loggedInDriver._id }, { accountId: record._id })
+    await driverService.updateRecord({ _id: loggedInAgency._id }, { accountId: record._id })
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "agencyId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "walletId", select: ["_id", "balance"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
@@ -94,10 +98,10 @@ module.exports.createAccount = async (body, loggedInDriver) => {
 };
 
 // get all account new commit
-module.exports.getAllDriverAccounts = async (query) => {
+module.exports.getAllAgencyAccounts = async (query) => {
     logger.info("START:Get All Accounts");
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "agencyId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "walletId", select: ["_id", "balance"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
@@ -109,14 +113,14 @@ module.exports.getAllDriverAccounts = async (query) => {
         .paginate()
         .populate(populateQuery)
         .limitFields(null, ['-__v'])
-        .exec(accountDriverModel);
+        .exec(accountAgencyModel);
     return record.data;
 };
 
-module.exports.getOneDriverAccount = async (accountId) => {
+module.exports.getOneAgencyAccount = async (accountId) => {
     logger.info("START:Get only account");
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "agencyId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] },
         { path: "walletId", select: ["_id", "balance"] },
@@ -126,18 +130,18 @@ module.exports.getOneDriverAccount = async (accountId) => {
     return account;
 };
 
-module.exports.updateProfileStatus = async (loggedInDriver, body) => {
-    logger.info("START: updating driver profile completion status");
-    if (!loggedInDriver) {
-        throw new AppError(401, "Unauthorized: driver not logged in");
+module.exports.updateProfileStatus = async (loggedInAgency, body) => {
+    logger.info("START: updating agency profile completion status");
+    if (!loggedInAgency) {
+        throw new AppError(401, "Unauthorized: agency not logged in");
     }
-    const condition = { driverId: loggedInDriver._id };
+    const condition = { agencyId: loggedInAgency._id };
     const profile = await this.findOneRecord(condition);
     if (!profile) {
         throw new AppError(404, "Account not found");
     }
     const updatePayload = {
-        updatedBy: loggedInDriver._id
+        updatedBy: loggedInAgency._id
     };
     if (body.profileCompleted !== undefined) {
         const isProfileCompleted = Boolean(body.profileCompleted);
@@ -160,13 +164,13 @@ module.exports.updateProfileStatus = async (loggedInDriver, body) => {
         profile.profileCompleted === false
     ) {
         appEventEmitter.emit(EVENTS.PROFILE_COMPLETED, {
-            driverId: loggedInDriver._id,
-            accountDriverId: updatedRecord._id,
+            agencyId: loggedInAgency._id,
+            accountAgencyId: updatedRecord._id,
             source: "system",
             timestamp: new Date()
         });
     }
-    logger.info("END: driver profile status updated");
+    logger.info("END: agency profile status updated");
     return updatedRecord;
 };
 
@@ -175,14 +179,17 @@ module.exports.updateAccount = async (accountId, body) => {
     logger.info("START:Updating the account");
 
     const updatePayload = {
-        updatedBy: body.driverId,
+        updatedBy: body.agencyId,
     };
-    if (body.dob) updatePayload.dob = body.dob;
-    if (body.gender) updatePayload.gender = body.gender;
+    if (body.gstNumber) updatePayload.gstNumber = body.gstNumber;
+    if (body.agencyName) updatePayload.agencyName = body.agencyName;
+    if (body.panNumber) updatePayload.panNumber = body.panNumber;
+    if (body.ownerName) updatePayload.ownerName = body.ownerName;
+    if (body.pinCode) updatePayload.pinCode = body.pinCode;
+    if (body.address) updatePayload.address = body.address;
+    // todo update gpr vehicle docs
     if (body.city) updatePayload.city = body.city;
     if (body.state) updatePayload.state = body.state;
-    if (body.firstName) updatePayload.firstName = body.firstName;
-    if (body.lastName) updatePayload.lastName = body.lastName;
     if (body.profilePicture) {
         if (
             body.profilePicture.startsWith("https://") ||
@@ -201,22 +208,26 @@ module.exports.updateAccount = async (accountId, body) => {
 
 module.exports.deleteAccount = async (accountId) => {
     logger.info("START:Deleting the account");
-    const update = await accountDriverModel.findOneAndDelete({ _id: accountId });
+    const update = await accountAgencyModel.findOneAndDelete({ _id: accountId });
     if (!update) throw new AppError(404, "account not found in collection");
     return true;
 };
 
-//  GET DRIVER PROFILE
-module.exports.getProfile = async (loggedInDriver) => {
+/**
+ * =========================
+ * GET DRIVER PROFILE
+ * =========================
+ */
+module.exports.getProfile = async (loggedInAgency) => {
     logger.info("START: get driver profile");
 
-    if (!loggedInDriver) {
+    if (!loggedInAgency) {
         throw new AppError(401, "Unauthorized: driver not logged in");
     }
 
     const populateQuery = [
         {
-            path: "driverId",
+            path: "agencyId",
             select: ["_id", "username", "email", "phoneNumber", "accountType"]
         },
         {
@@ -258,8 +269,8 @@ module.exports.getProfile = async (loggedInDriver) => {
         }
     ];
 
-    const profile = await accountDriverModel
-        .findOne({ driverId: loggedInDriver._id })
+    const profile = await accountAgencyModel
+        .findOne({ agencyId: loggedInAgency._id })
         .select("-__v -verifiedBy -verifiedAt")
         .populate(populateQuery);
 

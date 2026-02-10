@@ -4,6 +4,7 @@ const AppError = require("../utils/appError");
 const APIFeatures = require("../utils/apiFeature");
 const accountDriverService = require("./accountDriver.service");
 const upload = require("../core/cloudImage");
+const accountAgencyService = require("./accountAgency.service");
 
 /**
  * =========================
@@ -43,62 +44,121 @@ module.exports.updateRecord = async (condition, body) => {
  * CREATE DOCUMENT
  * =========================
  */
-module.exports.createDocument = async (data) => {
-    logger.info("START: creating driver document");
+module.exports.createDocument = async (data, loggedInOwner) => {
+    logger.info("START: creating document");
 
-    const requiredFields = [
-        "driverId",
-        "documentType",
-    ];
-
+    /* =====================================================
+       1️⃣ BASIC VALIDATION
+    ===================================================== */
+    const requiredFields = ["documentType","documentNumber"];
     for (const field of requiredFields) {
         if (!data[field]) {
             throw new AppError(400, `${field} is required`);
         }
     }
 
-    // Prevent duplicate document type for same driver
-    const existingDocument = await driverDocumentModel.findOne({
-        driverId: data.driverId,
-    });
+    /* =====================================================
+       2️⃣ DUPLICATE CHECK (SWITCH CASE)
+    ===================================================== */
+    switch (loggedInOwner.accountType) {
 
-    if (existingDocument) {
-        throw new AppError(409, "Document already uploaded");
+        case "individual": {
+            // ❌ Individual can upload ONLY ONE document
+            const existingDoc = await driverDocumentModel.findOne({
+                ownerId: loggedInOwner._id
+            });
+
+            if (existingDoc) {
+                throw new AppError(
+                    409,
+                    "Individual driver can upload only one document"
+                );
+            }
+            break;
+        }
+
+        case "agency": {
+            // ❌ Agency cannot upload same documentType twice
+            const duplicateDoc = await driverDocumentModel.findOne({
+                ownerId: loggedInOwner._id,
+                // documentType: data.documentType
+            });
+
+            // if (duplicateDoc) {
+            //     throw new AppError(
+            //         409,
+            //         `${data.documentType} document already uploaded`
+            //     );
+            // }
+            break;
+        }
+
+        default:
+            throw new AppError(400, "Invalid account type");
     }
 
-    // Utility function to handle array image uploads
+    /* =====================================================
+       3️⃣ IMAGE UPLOAD (ARRAY)
+    ===================================================== */
     const uploadImages = async (images, folder) => {
-        const multiPictures = await upload.uploadArrayImage(images, folder);
-        return multiPictures
-            .map(picture => picture?.cloudinaryResponse?.secure_url ? { image: picture?.cloudinaryResponse?.secure_url } : null)
+        const uploaded = await upload.uploadArrayImage(images, folder);
+        return uploaded
+            .map(img =>
+                img?.cloudinaryResponse?.secure_url
+                    ? { image: img.cloudinaryResponse.secure_url }
+                    : null
+            )
             .filter(Boolean);
     };
 
-    // Upload array images if present
-    if (Array.isArray(data?.documentImages) && data.documentImages.length > 0) {
-        data.documentImages = await uploadImages(data.documentImages, "documentImages");
-        if (data.documentImages.length === 0) {
-            throw new AppError(400, "Failed to upload array images for documentImages");
+    if (Array.isArray(data.documentImages) && data.documentImages.length > 0) {
+        data.documentImages = await uploadImages(
+            data.documentImages,
+            "documentImages"
+        );
+
+        if (!data.documentImages.length) {
+            throw new AppError(400, "Failed to upload document images");
         }
     }
 
+    /* =====================================================
+       4️⃣ CREATE DOCUMENT
+    ===================================================== */
     const payload = {
-        driverId: data.driverId,
+        ownerId: loggedInOwner._id,
         documentType: data.documentType,
         documentNumber: data.documentNumber,
         documentImages: data.documentImages || [],
-        createdBy: data.driverId,
-        updatedBy: data.driverId
+        createdBy: loggedInOwner._id,
+        updatedBy: loggedInOwner._id
     };
 
     const document = await this.createRecord(payload);
 
-    // OPTIONAL: update profile progress (documents uploaded)
-    const condition = { driverId: data.driverId }
-    const updatePayload = { $push: { documentIds: document._id } }
-    await accountDriverService.updateRecord(condition, updatePayload);
+    /* =====================================================
+       5️⃣ LINK DOCUMENT TO PROFILE (SWITCH CASE)
+    ===================================================== */
+    switch (loggedInOwner.accountType) {
 
-    logger.info("END: driver document created");
+        case "individual": {
+            await accountDriverService.updateRecord(
+                { driverId: loggedInOwner._id },
+                { $set: { documentIds: [document._id] } } // enforce single doc
+            );
+            break;
+        }
+
+        case "agency": {
+            await accountAgencyService.updateRecord(
+                { agencyId: loggedInOwner._id },
+                { $addToSet: { documentIds: document._id } }
+            );
+            break;
+        }
+    }
+
+    logger.info("END: document created successfully");
     return document;
 };
 
@@ -114,10 +174,10 @@ module.exports.getMyDocuments = async (loggedInDriver) => {
         throw new AppError(401, "Unauthorized: driver not logged in");
     }
 
-    const condition = { driverId: loggedInDriver._id };
+    const condition = { ownerId: loggedInDriver._id };
 
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] },
         // { path: "verifiedBy", select: ["_id", "username", "accountType"] }
@@ -150,14 +210,14 @@ module.exports.getMyDocumentById = async (documentId, loggedInDriver) => {
     }
 
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] },
         // { path: "verifiedBy", select: ["_id", "username", "accountType"] }
     ];
 
     const document = await this.findOneRecord(
-        { _id: documentId, driverId: loggedInDriver._id },
+        { _id: documentId, ownerId: loggedInDriver._id },
         "-__v",
         populateQuery
     );

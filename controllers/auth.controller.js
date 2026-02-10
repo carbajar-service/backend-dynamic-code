@@ -5,6 +5,7 @@ const responser = require("../utils/responser")
 module.exports.register = async (req, res) => {
     logger.info("Creating The Register");
     const reqData = req.body;
+    console.log("reqdata", reqData);
     const data = await authService.createRegister(reqData);
     logger.data("successfully register created", data);
     return responser.send(200, "successFully User Registed", req, res, data);

@@ -16,8 +16,8 @@ const accountDriverSchema = new schema(
         address: { type: String, required: true },
         driverId: { type: schema.Types.ObjectId, ref: "driver", required: true },
         walletId: { type: schema.Types.ObjectId, ref: "wallet", },
-        vehiclesId: [{ type: schema.Types.ObjectId, ref: "vehicle", }],
-        documentIds: [{ type: schema.Types.ObjectId, ref: "driverDocument", }],
+        vehiclesId: { type: schema.Types.ObjectId, ref: "vehicle", },
+        documentId: { type: schema.Types.ObjectId, ref: "driverDocument", },
         accountStatus: {
             type: String,
             enum: ["pending", "rejected", "approved"],
@@ -26,7 +26,6 @@ const accountDriverSchema = new schema(
         reasonForRejection: { type: String },
         profileCompleted: { type: Boolean, default: false },
         documentVerification: { type: Boolean, default: false },
-        profileType: { type: String, enum: ["individual", "agency"] },
         verifiedBy: { type: schema.Types.ObjectId },//admin
         verifiedAt: { type: Date },
         createdBy: { type: schema.Types.ObjectId, ref: "driver" },

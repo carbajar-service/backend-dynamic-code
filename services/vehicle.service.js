@@ -3,6 +3,7 @@ const logger = require("../utils/logs");
 const AppError = require("../utils/appError");
 const APIFeatures = require("../utils/apiFeature");
 const accountDriverService = require("./accountDriver.service");
+const accountAgencyService = require("./accountAgency.service");
 const upload = require("../core/cloudImage");
 
 module.exports.createRecord = async (object) => {
@@ -27,8 +28,9 @@ module.exports.updateRecord = async (condition, body) => {
 };
 
 // create the default vehicle for the user 
-module.exports.createVehicle = async (data) => {
+module.exports.createVehicle = async (data, loggedInOwner) => {
     logger.info("START:creating vehicle");
+    
     const requiredFields = [
         "vehicleType",
         "vehicleName",
@@ -79,7 +81,7 @@ module.exports.createVehicle = async (data) => {
     }
     // 3 Create vehicle
     const payload = {
-        driverId: data.driverId,
+        ownerId: loggedInOwner._id,
         vehicleType: data.vehicleType,
         vehicleName: data.vehicleName,
         vehicleNumber: data.vehicleNumber,
@@ -96,10 +98,29 @@ module.exports.createVehicle = async (data) => {
     };
 
     const vehicle = await this.createRecord(payload);
-    //TODO
-    const condition = { driverId: data.driverId }
-    const updatePayload = { $push: { vehiclesId: vehicle._id } }
-    await accountDriverService.updateRecord(condition, updatePayload);
+    switch (loggedInOwner.accountType) {
+        case "individual": {
+            const condition = { driverId: loggedInOwner._id };
+            const updatePayload = {
+                $set: { vehiclesId: [vehicle._id] } // enforce single vehicle
+            };
+            await accountDriverService.updateRecord(condition, updatePayload);
+            break;
+        }
+
+        case "agency": {
+            const condition = { agencyId: loggedInOwner._id };
+            console.log("con",condition);
+            
+            const updatePayload = {
+                $addToSet: { vehicleIds: vehicle._id } // prevent duplicates
+            };
+            await accountAgencyService.updateRecord(condition, updatePayload);
+            break;
+        }
+        default:
+            throw new AppError(400, "Invalid profile type");
+    }
     logger.info("END: vehicle created successfully");
     return vehicle;
 }
@@ -111,9 +132,9 @@ module.exports.getMyVehicles = async (loggedInDriver) => {
     if (!loggedInDriver) {
         throw new AppError(401, "Unauthorized: driver not logged in");
     }
-    const condition = { driverId: loggedInDriver._id }
+    const condition = { ownerId: loggedInDriver._id }
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
     ];
@@ -135,7 +156,7 @@ module.exports.getVehicleById = async (vehicleId) => {
         throw new AppError(400, "vehicleId is required");
     }
     const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
         { path: "createdBy", select: ["_id", "username", "accountType"] },
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
     ];

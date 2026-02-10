@@ -5,7 +5,7 @@ const schema = mongoose.Schema;
 
 const driverDocumentSchema = new mongoose.Schema(
     {
-        driverId: { type: schema.Types.ObjectId, ref: "driver", required: true, index: true },
+        ownerId: { type: schema.Types.ObjectId, ref: "driver", required: true, index: true },
         documentType: {
             type: String,
             enum: [

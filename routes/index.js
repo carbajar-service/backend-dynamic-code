@@ -6,6 +6,7 @@ const staffRouter = require("./staff");
 const factoryRouter = require("./factory");
 const pdfRoutes = require("./pdfRoutes");
 const accountDriverRouter = require("./accountDriver");
+const accountAgencyRouter = require("./accountAgency");
 const accountRouter = require("./accountUser");
 const walletRouter = require("./wallet");
 const leadRouter = require("./lead");
@@ -19,6 +20,7 @@ const routes = (app) => {
   app.use("/factory", factoryRouter);
   app.use("/pdf", pdfRoutes);
   app.use("/driver-account", accountDriverRouter);
+  app.use("/agency-account", accountAgencyRouter);
   app.use("/account", accountRouter);
   app.use("/wallet", walletRouter);
   app.use("/lead", leadRouter);

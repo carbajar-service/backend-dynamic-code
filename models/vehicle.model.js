@@ -5,7 +5,9 @@ const schema = mongoose.Schema;
 
 const vehicleSchema = new mongoose.Schema(
     {
-        driverId: { type: schema.Types.ObjectId, ref: "driver", required: true, index: true },
+        // ownerId ->driver 
+        // ownerId ->agency
+        ownerId: { type: schema.Types.ObjectId, ref: "driver", required: true, index: true },
         vehicleType: { type: String, required: true },
         vehicleName: { type: String, required: true },
         vehicleNumber: { type: String, required: true, unique: true },
@@ -17,7 +19,7 @@ const vehicleSchema = new mongoose.Schema(
         vehicleModel: { type: String, required: true },
         numberOfSeats: { type: String, },
         regYear: { type: String, required: true },
-        verifiedBy: { type: schema.Types.ObjectId,ref: "admin", },//admin
+        verifiedBy: { type: schema.Types.ObjectId, ref: "admin", },//admin
         verifiedAt: { type: Date },
         vehicleRejectionReason: { type: String },
         createdBy: { type: schema.Types.ObjectId, ref: "driver" },

@@ -63,9 +63,9 @@ module.exports.updateProfileStatus = async (req, res) => {
 module.exports.createVehicle = async (req, res) => {
     logger.info("Create Vehicle");
     const reqData = req.body;
-    const loggedInDriver = req.driver;
-    reqData.driverId = loggedInDriver._id;
-    const data = await vehicleService.createVehicle(reqData);
+    const loggedInOwner = req.driver;
+    reqData.ownerId = loggedInOwner._id;
+    const data = await vehicleService.createVehicle(reqData, loggedInOwner);
     logger.data("Vehicle created successfully", data);
     return responser.send(
         200,
@@ -108,11 +108,8 @@ module.exports.getVehicleById = async (req, res) => {
 module.exports.createDocument = async (req, res) => {
     logger.info("Create Driver Document");
     const reqData = req.body;
-    const loggedInDriver = req.driver;
-
-    reqData.driverId = loggedInDriver._id;
-
-    const data = await driverDocumentService.createDocument(reqData);
+    const loggedInOwner = req.driver;
+    const data = await driverDocumentService.createDocument(reqData, loggedInOwner);
     logger.data("Document created successfully", data);
 
     return responser.send(

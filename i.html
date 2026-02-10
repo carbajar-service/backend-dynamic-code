@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Login</title>
+
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
+
+        .box {
+            background: #fff;
+            width: 340px;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .msg {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .profile {
+            display: none;
+        }
+
+        .profile p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .token {
+            word-break: break-all;
+            font-size: 11px;
+            background: #f1f1f1;
+            padding: 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN BOX -->
+    <div class="box" id="loginBox">
+        <h2>Admin Login</h2>
+
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="msg" id="msg"></div>
+    </div>
+
+    <!-- PROFILE BOX -->
+    <div class="box profile" id="profileBox">
+        <h2>Admin Profile</h2>
+
+        <p><b>ID:</b> <span id="uid"></span></p>
+        <p><b>Username:</b> <span id="username"></span></p>
+        <p><b>Email:</b> <span id="uemail"></span></p>
+        <p><b>Account Type:</b> <span id="type"></span></p>
+
+        <p><b>Access Token:</b></p>
+        <div class="token" id="accessToken"></div>
+
+        <p><b>Refresh Token:</b></p>
+        <div class="token" id="refreshToken"></div>
+    </div>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const msg = document.getElementById("msg");
+
+            axios.post("https://cabbajar-backend.kanlifegroup.com/admin/login", {
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value
+            })
+                .then(res => {
+                    const data = res.data.data;
+
+                    // Store tokens (optional)
+                    localStorage.setItem("accessToken", data.accessToken);
+                    localStorage.setItem("refreshToken", data.refreshToken);
+
+                    // Hide login, show profile
+                    document.getElementById("loginBox").style.display = "none";
+                    document.getElementById("profileBox").style.display = "block";
+
+                    // Fill user details
+                    document.getElementById("uid").innerText = data._id;
+                    document.getElementById("username").innerText = data.username;
+                    document.getElementById("uemail").innerText = data.email;
+                    document.getElementById("type").innerText = data.accountType;
+                    document.getElementById("accessToken").innerText = data.accessToken;
+                    document.getElementById("refreshToken").innerText = data.refreshToken;
+                })
+                .catch(err => {
+                    msg.style.color = "red";
+                    msg.innerText = err.response?.data?.message || "Login failed ❌";
+                });
+        });
+    </script>
+
+</body>
+
+</html>
