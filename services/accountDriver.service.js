@@ -231,7 +231,9 @@ module.exports.getProfile = async (loggedInDriver) => {
                 "vehicleModel",
                 "numberOfSeats",
                 "regYear",
-                "vehicleRc"
+                "vehicleRc",
+                "vehicleRcImages",
+                "vehicleImages"
             ]
         },
         {
@@ -241,7 +243,8 @@ module.exports.getProfile = async (loggedInDriver) => {
                 "documentType",
                 "documentStatus",
                 "documentVerification",
-                "documentNumber"
+                "documentNumber",
+                "documentImages"
             ]
         },
         {

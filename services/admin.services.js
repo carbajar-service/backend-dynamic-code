@@ -182,6 +182,8 @@ const driverPopulateQuery = [
             "vehicleModel",
             "numberOfSeats",
             "regYear",
+            "vehicleImages",
+            "vehicleRcImages"
         ]
     },
     {
@@ -191,7 +193,8 @@ const driverPopulateQuery = [
             "documentType",
             "documentStatus",
             "documentVerification",
-            "documentNumber"
+            "documentNumber",
+            "documentImages"
         ]
     },
     {

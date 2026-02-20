@@ -71,7 +71,7 @@ module.exports.createAccount = async (body, loggedInAgency) => {
         profilePicture: body.profilePicture,
         address: body.address,
         pinCode: body.pinCode,
-        agencyName:body.agencyName,
+        agencyName: body.agencyName,
         walletId: walletId
     };
 
@@ -231,7 +231,7 @@ module.exports.getProfile = async (loggedInAgency) => {
             select: ["_id", "username", "email", "phoneNumber", "accountType"]
         },
         {
-            path: "vehiclesId",
+            path: "vehicleIds",
             select: [
                 "_id",
                 "vehicleType",
@@ -242,7 +242,9 @@ module.exports.getProfile = async (loggedInAgency) => {
                 "vehicleModel",
                 "numberOfSeats",
                 "regYear",
-                "vehicleRc"
+                "vehicleRc",
+                "vehicleRcImages",
+                "vehicleImages"
             ]
         },
         {
@@ -252,7 +254,8 @@ module.exports.getProfile = async (loggedInAgency) => {
                 "documentType",
                 "documentStatus",
                 "documentVerification",
-                "documentNumber"
+                "documentNumber",
+                "documentImages"
             ]
         },
         {

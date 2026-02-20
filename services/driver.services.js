@@ -178,45 +178,92 @@ module.exports.refreshOtp = async (body) => {
 // get DriverProfile
 
 // 1.driver Matching Leads
-// module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
-//     logger.info("Start:Get Driver Matching Ride");
-//     const driverPayload = {
-//         driverId: loggedInDriver?._id,
-//         accountStatus: "approved",
-//         profileCompleted: true
-//     }
-//     const driverAccount = await accountDriverService.findOneRecord(driverPayload, "city state  vehicleType");
-//     console.log("aa", driverAccount);
+// module.exports.getDriverMatchingLeads = async (loggedInOwner) => {
+//     logger.info("START: Get Driver Matching Leads (Multi-Vehicle)");
+
+//     // 1️⃣ Validate approved driver account
+//     const driverAccount = await accountDriverService.findOneRecord(
+//         {
+//             driverId: loggedInOwner._id,
+//             accountStatus: "approved",
+//             profileCompleted: true
+//         },
+//         "city state"
+//     );
+//     console.log("driver", driverAccount);
+
 
 //     if (!driverAccount) {
 //         throw new AppError(403, "Driver account not approved or not found");
 //     }
-//     const vehicle = await vehicleService.findOneRecord({ driverId: loggedInDriver?._id });
-//     console.log("vehicle", vehicle);
+
+//     const agencyAccount = await accountAgencyService.findOneRecord(
+//         {
+//             agencyId: loggedInOwner._id,
+//             accountStatus: "approved",
+//             profileCompleted: true
+//         },
+//         "city state"
+//     );
+//     console.log("driver", driverAccount);
+
+
+//     if (!agencyAccount) {
+//         throw new AppError(403, "Agency account not approved or not found");
+//     }
+
+//     // 2️⃣ Fetch ALL approved vehicles
+//     const vehicles = await vehicleService.findAllRecord({
+//         ownerId: loggedInOwner._id,
+//         vehicleStatus: "approved"
+//     });
+
+//     if (!vehicles || vehicles.length === 0) {
+//         throw new AppError(403, "No approved vehicles found");
+//     }
+
+//     // 3️⃣ Extract vehicle types
+//     const vehicleTypes = vehicles
+//         .map(v => v.vehicleType)
+//         .filter(Boolean);
+//     console.log("vehicleTypes", vehicleTypes);
+
+//     if (vehicleTypes.length === 0) {
+//         throw new AppError(403, "Approved vehicles have no vehicle type");
+//     }
+
+//     // 4️⃣ Date filter (future pickups only)
 //     const now = new Date();
+
+//     // 5️⃣ Lead matching condition (MULTI-VEHICLE FIX)
 //     const condition = {
-//         userCity: driverAccount.city,
-//         vehicleType: driverAccount.vehicleType,
+//         userCity: driverAccount.city, // here driverAccount also i want agencyAccount also i want
+//         vehicleType: { $in: vehicleTypes },
 //         leadStatus: "NEW-LEAD",
 //         showFlag: true,
-//         // pickUpDate: { $gte: now.toISOString().split("T")[0] }, // Future or today pickups only
-//         "assign.driverId": { $exists: false } // Ensure not already taken
+//         "assign.driverId": { $exists: false } 
 //     };
 
-//     console.log("con", condition);
+//     console.log("condition", condition);
+
 //     const populateData = [
 //         { path: "userId", select: ["_id", "username", "phoneNumber"] }
-//     ]
-//     const leads = await leadService.findAllRecord(condition, "-__v -cancellationHistory -rejectionHistory", populateData);
-//     console.log("lead", leads);
+//     ];
+
+//     const leads = await leadService.findAllRecord(
+//         condition,
+//         "-__v -cancellationHistory -rejectionHistory",
+//         populateData
+//     );
+
+//     logger.info(`END: Found ${leads.length} matching leads`);
 
 //     return leads;
 // };
 
 module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
-    logger.info("START: Get Driver Matching Leads (Multi-Vehicle)");
+    logger.info("START: Driver Matching Leads");
 
-    // 1️⃣ Validate approved driver account
     const driverAccount = await accountDriverService.findOneRecord(
         {
             driverId: loggedInDriver._id,
@@ -225,67 +272,77 @@ module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
         },
         "city state"
     );
-    console.log("driver", driverAccount);
-
 
     if (!driverAccount) {
-        throw new AppError(403, "Driver account not approved or not found");
+        throw new AppError(403, "Driver account not approved");
     }
 
-    // 2️⃣ Fetch ALL approved vehicles
     const vehicles = await vehicleService.findAllRecord({
-        driverId: loggedInDriver._id,
+        ownerId: loggedInDriver._id,
         vehicleStatus: "approved"
     });
 
-    console.log("vehicles", vehicles);
-
-    if (!vehicles || vehicles.length === 0) {
+    if (!vehicles.length) {
         throw new AppError(403, "No approved vehicles found");
     }
 
-    // 3️⃣ Extract vehicle types
-    const vehicleTypes = vehicles
-        .map(v => v.vehicleType)
-        .filter(Boolean);
-    console.log("vehicleTypes", vehicleTypes);
-
-    if (vehicleTypes.length === 0) {
-        throw new AppError(403, "Approved vehicles have no vehicle type");
-    }
-
-    // 4️⃣ Date filter (future pickups only)
-    const now = new Date();
-
-    // 5️⃣ Lead matching condition (MULTI-VEHICLE FIX)
-    const condition = {
-        userCity: driverAccount.city,
-        vehicleType: { $in: vehicleTypes },
-        leadStatus: "NEW-LEAD",
-        showFlag: true,
-        "assign.driverId": { $exists: false } 
-        // pickUpDate: { $gte: now },
-        // $or: [
-        //     { "assign.driverId": { $exists: false } },
-        //     { "assign.driverId": null }
-        // ]
-    };
-
-    console.log("condition", condition);
-
-    const populateData = [
-        { path: "userId", select: ["_id", "username", "phoneNumber"] }
-    ];
+    const vehicleTypes = vehicles.map(v => v.vehicleType);
 
     const leads = await leadService.findAllRecord(
-        condition,
+        {
+            userCity: driverAccount.city,
+            vehicleType: { $in: vehicleTypes },
+            leadStatus: "NEW-LEAD",
+            showFlag: true,
+            "assign.ownerId": { $exists: false }
+        },
         "-__v -cancellationHistory -rejectionHistory",
-        populateData
+        [{ path: "userId", select: ["username", "phoneNumber"] }]
+    );
+    logger.info(`END: Found ${leads.length} matching leads`);
+    return leads
+};
+
+module.exports.getAgencyMatchingLeads = async (loggedInAgency) => {
+    logger.info("START: Agency Matching Leads");
+
+    const agencyAccount = await accountAgencyService.findOneRecord(
+        {
+            agencyId: loggedInAgency._id,
+            agencyStatus: "approved",
+            profileCompleted: true
+        },
+        "city state"
     );
 
-    logger.info(`END: Found ${leads.length} matching leads`);
+    if (!agencyAccount) {
+        throw new AppError(403, "Agency account not approved");
+    }
 
-    return leads;
+    const vehicles = await vehicleService.findAllRecord({
+        ownerId: loggedInAgency._id,
+        vehicleStatus: "approved"
+    });
+
+    if (!vehicles.length) {
+        throw new AppError(403, "No approved vehicles found");
+    }
+
+    const vehicleTypes = vehicles.map(v => v.vehicleType);
+
+    const leads = await leadService.findAllRecord(
+        {
+            userCity: agencyAccount.city,
+            vehicleType: { $in: vehicleTypes },
+            leadStatus: "NEW-LEAD",
+            showFlag: true,
+            "assign.ownerId": { $exists: false }
+        },
+        "-__v -cancellationHistory -rejectionHistory",
+        [{ path: "userId", select: ["username", "phoneNumber"] }]
+    );
+
+    return leads
 };
 
 
