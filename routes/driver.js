@@ -11,6 +11,9 @@ driverRouter.route("/refresh-otp").post(catchError(driverController.driverRefres
 driverRouter.route("/matchingLeads")
     .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.getDriverMatchingLeads));
 
+driverRouter.route("/agency/matchingLeads")
+    .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.getAgencyMatchingLeads));
+
 driverRouter.route("/accept/:leadId")
     .patch(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.acceptLeadByDriver));
 

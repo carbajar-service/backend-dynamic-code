@@ -9,6 +9,7 @@ const tokenService = require("../middlewares/token");
 const { generateOTP, generateUniqueUsername } = require('../utils/utils');
 const sms = require('./sms/fast2sms');
 const accountDriverService = require("./accountDriver.service");
+const accountAgencyService = require("./accountAgency.service");
 const leadService = require("./lead.service");
 const vehicleService = require("./vehicle.service");
 const LeadModel = require("../models/lead.model");
@@ -174,93 +175,6 @@ module.exports.refreshOtp = async (body) => {
     return `Successfully refreshed OTP sent to ${body.phoneNumber}!`;
 };
 
-
-// get DriverProfile
-
-// 1.driver Matching Leads
-// module.exports.getDriverMatchingLeads = async (loggedInOwner) => {
-//     logger.info("START: Get Driver Matching Leads (Multi-Vehicle)");
-
-//     // 1️⃣ Validate approved driver account
-//     const driverAccount = await accountDriverService.findOneRecord(
-//         {
-//             driverId: loggedInOwner._id,
-//             accountStatus: "approved",
-//             profileCompleted: true
-//         },
-//         "city state"
-//     );
-//     console.log("driver", driverAccount);
-
-
-//     if (!driverAccount) {
-//         throw new AppError(403, "Driver account not approved or not found");
-//     }
-
-//     const agencyAccount = await accountAgencyService.findOneRecord(
-//         {
-//             agencyId: loggedInOwner._id,
-//             accountStatus: "approved",
-//             profileCompleted: true
-//         },
-//         "city state"
-//     );
-//     console.log("driver", driverAccount);
-
-
-//     if (!agencyAccount) {
-//         throw new AppError(403, "Agency account not approved or not found");
-//     }
-
-//     // 2️⃣ Fetch ALL approved vehicles
-//     const vehicles = await vehicleService.findAllRecord({
-//         ownerId: loggedInOwner._id,
-//         vehicleStatus: "approved"
-//     });
-
-//     if (!vehicles || vehicles.length === 0) {
-//         throw new AppError(403, "No approved vehicles found");
-//     }
-
-//     // 3️⃣ Extract vehicle types
-//     const vehicleTypes = vehicles
-//         .map(v => v.vehicleType)
-//         .filter(Boolean);
-//     console.log("vehicleTypes", vehicleTypes);
-
-//     if (vehicleTypes.length === 0) {
-//         throw new AppError(403, "Approved vehicles have no vehicle type");
-//     }
-
-//     // 4️⃣ Date filter (future pickups only)
-//     const now = new Date();
-
-//     // 5️⃣ Lead matching condition (MULTI-VEHICLE FIX)
-//     const condition = {
-//         userCity: driverAccount.city, // here driverAccount also i want agencyAccount also i want
-//         vehicleType: { $in: vehicleTypes },
-//         leadStatus: "NEW-LEAD",
-//         showFlag: true,
-//         "assign.driverId": { $exists: false } 
-//     };
-
-//     console.log("condition", condition);
-
-//     const populateData = [
-//         { path: "userId", select: ["_id", "username", "phoneNumber"] }
-//     ];
-
-//     const leads = await leadService.findAllRecord(
-//         condition,
-//         "-__v -cancellationHistory -rejectionHistory",
-//         populateData
-//     );
-
-//     logger.info(`END: Found ${leads.length} matching leads`);
-
-//     return leads;
-// };
-
 module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
     logger.info("START: Driver Matching Leads");
 
@@ -305,7 +219,6 @@ module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
 
 module.exports.getAgencyMatchingLeads = async (loggedInAgency) => {
     logger.info("START: Agency Matching Leads");
-
     const agencyAccount = await accountAgencyService.findOneRecord(
         {
             agencyId: loggedInAgency._id,
@@ -314,22 +227,17 @@ module.exports.getAgencyMatchingLeads = async (loggedInAgency) => {
         },
         "city state"
     );
-
     if (!agencyAccount) {
         throw new AppError(403, "Agency account not approved");
     }
-
     const vehicles = await vehicleService.findAllRecord({
         ownerId: loggedInAgency._id,
         vehicleStatus: "approved"
     });
-
     if (!vehicles.length) {
         throw new AppError(403, "No approved vehicles found");
     }
-
     const vehicleTypes = vehicles.map(v => v.vehicleType);
-
     const leads = await leadService.findAllRecord(
         {
             userCity: agencyAccount.city,
@@ -341,10 +249,8 @@ module.exports.getAgencyMatchingLeads = async (loggedInAgency) => {
         "-__v -cancellationHistory -rejectionHistory",
         [{ path: "userId", select: ["username", "phoneNumber"] }]
     );
-
     return leads
 };
-
 
 // 2.accept ride by driver
 module.exports.acceptLeadByDriver = async (leadId, loggedInDriver) => {
@@ -355,7 +261,7 @@ module.exports.acceptLeadByDriver = async (leadId, loggedInDriver) => {
         throw new AppError(400, "Lead is already accepted by another driver");
     }
     // Prevent same driver from accepting again
-    if (lead.assign?.driverId?.toString() === loggedInDriver._id.toString()) {
+    if (lead.assign?.ownerId?.toString() === loggedInDriver._id.toString()) {
         throw new AppError(400, "You have already accepted this lead");
     }
     // Prevent accepting past pickup time
@@ -368,7 +274,7 @@ module.exports.acceptLeadByDriver = async (leadId, loggedInDriver) => {
         $set: {
             leadStatus: "CONFIRMED",
             updatedBy: loggedInDriver._id,
-            "assign.driverId": loggedInDriver._id,
+            "assign.ownerId": loggedInDriver._id,
             "assign.assignedAt": new Date(),
             "assign.assignmentStatus": "accepted",
             "assign.assignType": "auto"
@@ -377,7 +283,7 @@ module.exports.acceptLeadByDriver = async (leadId, loggedInDriver) => {
     await leadService.updateRecord({ _id: leadId }, updateData);
     const populateQuery = [
         { path: "userId", select: ["_id", "username", "phoneNumber"] },
-        { path: "assign.driverId", select: ["_id", "username", "phoneNumber"] }
+        { path: "assign.ownerId", select: ["_id", "username", "phoneNumber"] }
     ];
 
     const updatedLead = await leadService.findOneRecord(
@@ -402,7 +308,7 @@ module.exports.cancelRideByDriver = async (leadId, loggedInDriver, body) => {
         throw new AppError(404, "Lead not found");
     }
     // 2. Ensure this driver is assigned to this lead
-    if (!lead.assign?.driverId || lead.assign.driverId.toString() !== loggedInDriver._id.toString()) {
+    if (!lead.assign?.ownerId || lead.assign.ownerId.toString() !== loggedInDriver._id.toString()) {
         throw new AppError(403, "You are not assigned to this ride");
     }
     // 3. Ensure ride is in a cancellable state
@@ -435,7 +341,7 @@ module.exports.cancelRideByDriver = async (leadId, loggedInDriver, body) => {
     // 6. Fetch updated lead (single, with populate if needed)
     const populateQuery = [
         { path: "userId", select: ["_id", "username", "phoneNumber"] },
-        { path: "assign.driverId", select: ["_id", "username", "phoneNumber"] }
+        { path: "assign.ownerId", select: ["_id", "username", "phoneNumber"] }
     ];
     const updatedLead = await leadService.findOneRecord(
         { _id: leadId },
@@ -457,7 +363,7 @@ module.exports.startRideByDriver = async (leadId, loggedInDriver) => {
     const lead = await leadService.findOneRecord({ _id: leadId });
     if (!lead) throw new AppError(404, "Lead not found");
     // Check if assigned to driver
-    if (!lead.assign?.driverId || lead.assign.driverId.toString() !== loggedInDriver._id.toString()) {
+    if (!lead.assign?.ownerId || lead.assign.ownerId.toString() !== loggedInDriver._id.toString()) {
         throw new AppError(403, "You are not assigned to this ride");
     }
     // Must be accepted (CONFIRMED) before starting
@@ -507,7 +413,7 @@ module.exports.completeRideByDriver = async (leadId, loggedInDriver) => {
     if (!lead) throw new AppError(404, "Lead not found");
 
     // Check if assigned to driver
-    if (!lead.assign?.driverId || lead.assign.driverId.toString() !== loggedInDriver._id.toString()) {
+    if (!lead.assign?.ownerId || lead.assign.ownerId.toString() !== loggedInDriver._id.toString()) {
         throw new AppError(403, "You are not assigned to this ride");
     }
 
@@ -563,7 +469,7 @@ module.exports.getDriverHistory = async (loggedInDriver, query) => {
     }
 
     const condition = {
-        "assign.driverId": loggedInDriver._id,
+        "assign.ownerId": loggedInDriver._id,
         ...statusFilter
     };
 
@@ -599,7 +505,7 @@ module.exports.getDriverEarnings = async (loggedInDriver, query) => {
 
     const type = query.type || "all";
     const match = {
-        "assign.driverId": loggedInDriver._id,
+        "assign.ownerId": loggedInDriver._id,
         leadStatus: "COMPLETED"
     };
 

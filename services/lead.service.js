@@ -58,7 +58,7 @@ module.exports.createLead = async (body) => {
         totalKm: body.totalKm,
         totalAmount: body.totalAmount,
         vehicleType: body.vehicleType,
-        userCity: body.userCity,
+        userCity: body.locations[0],
         adminSeen: false,
         leadStatus: "NEW-LEAD",
         createdBy: body.userId,

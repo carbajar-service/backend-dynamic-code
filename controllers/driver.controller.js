@@ -34,6 +34,14 @@ module.exports.getDriverMatchingLeads = async (req, res) => {
     return responser.send(200, "Matching Leads Fetched", req, res, data);
 };
 
+module.exports.getAgencyMatchingLeads = async (req, res) => {
+    logger.info("Get Driver Matching Leads");
+    const loggedIn = req.driver;
+    const data = await driverService.getAgencyMatchingLeads(loggedIn);
+    logger.info(data);
+    return responser.send(200, "Matching Leads Fetched", req, res, data);
+};
+
 module.exports.acceptLeadByDriver = async (req, res) => {
     logger.info("Accept Lead By Driver");
     const params = req.params;
