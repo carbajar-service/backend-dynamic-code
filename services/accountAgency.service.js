@@ -146,7 +146,7 @@ module.exports.updateProfileStatus = async (loggedInAgency, body) => {
     if (body.profileCompleted !== undefined) {
         const isProfileCompleted = Boolean(body.profileCompleted);
         if (isProfileCompleted) {
-            if (!profile.vehiclesId || profile.vehiclesId.length === 0) {
+            if (!profile.vehicleIds || profile.vehicleIds.length === 0) {
                 throw new AppError(400, "Add at least one vehicle to complete profile");
             }
             if (!profile.documentIds || profile.documentIds.length === 0) {
