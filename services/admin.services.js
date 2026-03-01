@@ -12,6 +12,7 @@ const sms = require('./sms/fast2sms');
 const userModel = require("../models/user.model");
 const driverModel = require("../models/driver.model");
 const accountDriverModel = require("../models/accountDriver.model");
+const agencyProfileModel = require("../models/agencyProfile.model");
 const accountUserModel = require("../models/accountUser.model");
 const vehicleModel = require("../models/vehicle.model");
 const driverDocumentModel = require("../models/driverDocument.model");
@@ -250,7 +251,7 @@ module.exports.getAllLeads = async (query) => {
     return record.data;
 };
 
-// get single driver by id
+// get single lead by id
 module.exports.getSingleLead = async (leadId) => {
     logger.info("START:Get only one lead");
     const populateQuery = [
@@ -262,6 +263,178 @@ module.exports.getSingleLead = async (leadId) => {
     const lead = await leadModel.findOne({ _id: leadId }).populate(populateQuery);
     if (!lead) throw new AppError(404, "Lead not found")
     return lead;
+};
+
+// get all agency
+module.exports.getAllAgencyProfiles = async (query) => {
+    logger.info("Get All Agency Profiles");
+    const populateQuery = [
+        {
+            path: "agencyId",
+            select: ["_id", "username", "email", "phoneNumber", "accountType"]
+        },
+        {
+            path: "vehicleIds",
+            select: [
+                "_id",
+                "vehicleType",
+                "vehicleName",
+                "vehicleNumber",
+                "vehicleStatus",
+                "vehicleBrand",
+                "vehicleModel",
+                "numberOfSeats",
+                "regYear",
+                "vehicleImages",
+                "vehicleRcImages"
+            ]
+        },
+        {
+            path: "documentIds",
+            select: [
+                "_id",
+                "documentType",
+                "documentStatus",
+                "documentVerification",
+                "documentNumber",
+                "documentImages"
+            ]
+        },
+        {
+            path: "walletId",
+            select: ["_id", "balance"]
+        },
+        {
+            path: "createdBy",
+            select: ["_id", "username"]
+        },
+        {
+            path: "updatedBy",
+            select: ["_id", "username"]
+        }
+    ];
+    const record = await new APIFeatures(query)
+        .filter()
+        .orRegexMultipleSearch("searchFilter")
+        .sort()
+        .paginate()
+        .populate(populateQuery)
+        .exec(agencyProfileModel);
+    return record.data;
+};
+
+// get single agency by id
+module.exports.getSingleAgency = async (agencyId) => {
+    logger.info("START:Get only one agency");
+    const populateQuery = [
+        {
+            path: "agencyId",
+            select: ["_id", "username", "email", "phoneNumber", "accountType"]
+        },
+        {
+            path: "vehicleIds",
+            select: [
+                "_id",
+                "vehicleType",
+                "vehicleName",
+                "vehicleNumber",
+                "vehicleStatus",
+                "vehicleBrand",
+                "vehicleModel",
+                "numberOfSeats",
+                "regYear",
+                "vehicleImages",
+                "vehicleRcImages"
+            ]
+        },
+        {
+            path: "documentIds",
+            select: [
+                "_id",
+                "documentType",
+                "documentStatus",
+                "documentVerification",
+                "documentNumber",
+                "documentImages"
+            ]
+        },
+        {
+            path: "walletId",
+            select: ["_id", "balance"]
+        },
+        {
+            path: "createdBy",
+            select: ["_id", "username"]
+        },
+        {
+            path: "updatedBy",
+            select: ["_id", "username"]
+        }
+    ];
+    const condition = {
+        _id: agencyId
+    }
+    const agency = await agencyProfileModel.findOne(condition).populate(populateQuery);
+    if (!agency) throw new AppError(404, "Agency not found")
+    return agency;
+};
+
+// get all vehicles
+module.exports.getAllVehicles = async (query) => {
+    logger.info(`Get All Vehicles Public`);
+    const populateQuery = [
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const record = await new APIFeatures(query)
+        .filter()
+        .orRegexMultipleSearch("searchFilter")
+        .sort()
+        .paginate()
+        .populate(populateQuery)
+        .exec(vehicleModel);
+    return record.data;
+};
+
+// get single vehicle by id
+module.exports.getSingleVehicle = async (vehicleId) => {
+    logger.info("START:Get only one vehicle");
+    const populateQuery = [
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const vehicle = await vehicleModel.findOne({ _id: vehicleId }).populate(populateQuery);
+    if (!vehicle) throw new AppError(404, "Vehicle not found")
+    return vehicle;
+};
+
+// get all Document
+module.exports.getAllDocuments = async (query) => {
+    logger.info(`Get All Vehicles Public`);
+    const populateQuery = [
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const record = await new APIFeatures(query)
+        .filter()
+        .orRegexMultipleSearch("searchFilter")
+        .sort()
+        .paginate()
+        .populate(populateQuery)
+        .exec(driverDocumentModel);
+    return record.data;
+};
+
+// get single document by id
+module.exports.getSingleDocument = async (documentId) => {
+    logger.info("START:Get only one document");
+    const populateQuery = [
+        { path: "ownerId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
+    ];
+    const document = await driverDocumentModel.findOne({ _id: documentId }).populate(populateQuery);
+    if (!document) throw new AppError(404, "Document not found")
+    return document;
 };
 
 // accept vehicle 
@@ -487,62 +660,96 @@ module.exports.approveDriverProfileTx = async (accountDriverId, data, adminId) =
     }
 };
 
-// get all vehicles
-module.exports.getAllVehicles = async (query) => {
-    logger.info(`Get All Vehicles Public`);
-    const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-    ];
-    const record = await new APIFeatures(query)
-        .filter()
-        .orRegexMultipleSearch("searchFilter")
-        .sort()
-        .paginate()
-        .populate(populateQuery)
-        .exec(vehicleModel);
-    return record.data;
-};
+// accept agency profile
+module.exports.approveAgencyProfileTx = async (acencyAccountId, data, adminId) => {
+    logger.info("START: Approve driver profile (TX)");
+    if (!acencyAccountId) {
+        throw new AppError(400, "acencyAccountId is required");
+    }
 
-// get single vehicle by id
-module.exports.getSingleVehicle = async (vehicleId) => {
-    logger.info("START:Get only one vehicle");
-    const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-    ];
-    const vehicle = await vehicleModel.findOne({ _id: vehicleId }).populate(populateQuery);
-    if (!vehicle) throw new AppError(404, "Vehicle not found")
-    return vehicle;
-};
+    if (!["approved", "rejected"].includes(data.status)) {
+        throw new AppError(400, "Invalid status value");
+    }
 
-// get all Document
-module.exports.getAllDocuments = async (query) => {
-    logger.info(`Get All Vehicles Public`);
-    const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-    ];
-    const record = await new APIFeatures(query)
-        .filter()
-        .orRegexMultipleSearch("searchFilter")
-        .sort()
-        .paginate()
-        .populate(populateQuery)
-        .exec(driverDocumentModel);
-    return record.data;
-};
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-// get single document by id
-module.exports.getSingleDocument = async (documentId) => {
-    logger.info("START:Get only one document");
-    const populateQuery = [
-        { path: "driverId", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-        { path: "verifiedBy", select: ["_id", "username", "accountType", "email", "phoneNumber"] },
-    ];
-    const document = await driverDocumentModel.findOne({ _id: documentId }).populate(populateQuery);
-    if (!document) throw new AppError(404, "Document not found")
-    return document;
+    try {
+        // 1️⃣ Fetch account driver
+        const accountDriver = await agencyProfileModel
+            .findOne({ _id: acencyAccountId })
+            .session(session);
+
+        if (!accountDriver) {
+            throw new AppError(404, "Agency account not found");
+        }
+
+        const agencyId = accountDriver.agencyId;
+
+        // 2️⃣ Safety check when approving
+        if (data.status === "approved") {
+            const pendingVehicles = await vehicleModel.countDocuments({
+                agencyId,
+                vehicleStatus: { $ne: "approved" }
+            }).session(session);
+
+            const pendingDocs = await driverDocumentModel.countDocuments({
+                agencyId,
+                documentStatus: { $ne: "approved" }
+            }).session(session);
+
+            // if (pendingDocs > 0) {
+            //     throw new AppError(
+            //         400,
+            //         "All documents must be approved first"
+            //     );
+            // }
+        }
+
+        // 3️⃣ Prepare update payload
+        const updatePayload = {
+            agencyStatus: data.status,
+            documentVerification: data.status === "approved",
+            reasonForRejection: null,
+            verifiedBy: adminId,
+            verifiedAt: new Date(),
+        };
+
+        logger.info(updatePayload);
+
+        // Rejection reason mandatory if rejected
+        if (data.status === "rejected") {
+            if (!data.rejectionReason) {
+                throw new AppError(400, "rejectionReason is required");
+            }
+            updatePayload.reasonForRejection = data.rejectionReason;
+        }
+
+        // 4️⃣ Update account driver
+        await agencyProfileModel.findOneAndUpdate(
+            { _id: acencyAccountId },
+            { $set: updatePayload },
+            { session, new: true }
+        );
+        // 5️⃣ Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        logger.info("END: Agency profile approval committed");
+
+        return {
+            message: `Agency profile ${data.status} successfully`,
+            agencyId,
+            status: data.status,
+            verifiedBy: adminId
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        logger.error("TX FAILED: Agency profile approval rolled back", error);
+        throw error;
+    }
 };
 
 // assign/remove lead 
@@ -575,7 +782,7 @@ module.exports.assignLeadByAdminToDriver = async (leadId, driverId, admin) => {
         $set: {
             leadStatus: "CONFIRMED", // remains same
             // updatedBy: admin._id,
-            "assign.driverId": driverId,
+            "assign.ownerId": driverId,
             "assign.assignedAt": new Date(),
             "assign.assignmentStatus": "pending",
             "assign.assignType": "admin"
@@ -624,7 +831,7 @@ module.exports.unassignLeadByAdmin = async (leadId, admin) => {
         $set: {
             leadStatus: "NEW-LEAD",
             updatedBy: admin._id,
-            "assign.driverId": null,
+            "assign.ownerId": null,
             "assign.assignedAt": null,
             "assign.assignmentStatus": "pending",
             "assign.assignType": "admin"
@@ -666,10 +873,9 @@ module.exports.assignLeadByAdminToAgency = async (leadId, agencyId, admin) => {
 
     const updateData = {
         $set: {
-            leadStatus: "ASSIGNED",
+            leadStatus: "CONFIRMED",
             updatedBy: admin._id,
-            "assign.agencyId": agencyId,
-            "assign.driverId": null,
+            "assign.ownerId": agencyId,
             "assign.assignedAt": new Date(),
             "assign.assignmentStatus": "assigned",
             "assign.assignType": "admin"
@@ -692,39 +898,6 @@ module.exports.assignLeadByAdminToAgency = async (leadId, agencyId, admin) => {
     logger.info("END: Admin assigned lead to agency");
 
     return updatedLead;
-};
-
-// get all driver
-module.exports.getAllAgencyProfiles = async (query) => {
-    logger.info("Get All Agency Profiles");
-
-    // 🔑 Force agency filter
-    const filterQuery = {
-        ...query,
-        profileType: "agency"
-    };
-
-    const record = await new APIFeatures(filterQuery)
-        .filter()
-        .orRegexMultipleSearch("searchFilter")
-        .sort()
-        .paginate()
-        .populate(driverPopulateQuery)
-        .exec(accountDriverModel);
-    return record.data;
-};
-
-
-// get single driver by id
-module.exports.getSingleAgency = async (agencyId) => {
-    logger.info("START:Get only one agency");
-    const condition = {
-        _id: agencyId,
-        profileType: "agency"
-    }
-    const agency = await accountDriverModel.findOne(condition).populate(driverPopulateQuery);
-    if (!agency) throw new AppError(404, "Agency not found")
-    return agency;
 };
 
 module.exports.updateLeadByAdmin = async (leadId, body) => {

@@ -33,7 +33,7 @@ const leadSchema = new schema(
         createdBy: { type: schema.Types.ObjectId, ref: "users" },
         updatedBy: { type: schema.Types.ObjectId, ref: "users" },
         assign: {
-            driverId: { type: schema.Types.ObjectId, ref: "driver" },
+            ownerId: { type: schema.Types.ObjectId, ref: "driver" },
             assignedAt: { type: Date },
             assignmentStatus: {
                 type: String,

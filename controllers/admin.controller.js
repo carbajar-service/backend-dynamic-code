@@ -145,6 +145,26 @@ module.exports.approveDriverProfile = async (req, res) => {
     );
 };
 
+module.exports.approveAgencyProfile = async (req, res) => {
+    logger.info("Controller: Approve Agency Profile");
+    const { acencyAccountId } = req.params;
+    const reqData = req.body;
+    const admin = req.admin;
+    const data = await adminService.approveAgencyProfileTx(
+        acencyAccountId,
+        reqData,
+        admin._id
+    );
+    logger.data("Agency profile approval success", data);
+    return responser.send(
+        200,
+        `Agency profile ${reqData.status} successfully`,
+        req,
+        res,
+        data
+    );
+};
+
 // get single vehicle
 module.exports.getSingleVehicleId = async (req, res) => {
     logger.info("getSingleUserId");
@@ -209,6 +229,29 @@ module.exports.assignLeadToDriver = async (req, res) => {
     return responser.send(
         200,
         "Lead assigned to driver successfully",
+        req,
+        res,
+        data
+    );
+};
+
+module.exports.assignLeadToAgency = async (req, res) => {
+    logger.info("Controller: Admin assign lead to driver");
+    const { leadId } = req.params;
+    const { agencyId } = req.body;
+    const admin = req.admin; // from verifyJWT
+
+    const data = await adminService.assignLeadByAdminToAgency(
+        leadId,
+        agencyId,
+        admin
+    );
+
+    logger.data("Lead assigned to agency successfully", data);
+
+    return responser.send(
+        200,
+        "Lead assigned to agency successfully",
         req,
         res,
         data

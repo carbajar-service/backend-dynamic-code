@@ -44,10 +44,23 @@ adminRouter.patch(
 );
 
 adminRouter.patch(
+    "/agency/approve-reject/:acencyAccountId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.approveAgencyProfile)
+);
+
+adminRouter.patch(
     "/lead/assign/:leadId",
     verifyJWT,
     authorizePermissions("admin"),
     catchError(adminController.assignLeadToDriver)
+);
+adminRouter.patch(
+    "/lead/agency/assign/:leadId",
+    verifyJWT,
+    authorizePermissions("admin"),
+    catchError(adminController.assignLeadToAgency)
 );
 adminRouter.patch(
     "/lead/unassign/:leadId",
