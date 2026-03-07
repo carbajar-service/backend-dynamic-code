@@ -144,7 +144,7 @@ module.exports.createDocument = async (data, loggedInOwner) => {
         case "individual": {
             await accountDriverService.updateRecord(
                 { driverId: loggedInOwner._id },
-                { $set: { documentIds: [document._id] } } // enforce single doc
+                { $set: { documentId: [document._id] } } // enforce single doc
             );
             break;
         }

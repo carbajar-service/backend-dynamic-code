@@ -8,15 +8,10 @@ const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const bankTransferSchema = new schema(
   {
     // ✅ POLYMORPHIC OWNER
-    ownerId: {
-      type: schema.Types.ObjectId,
-      required: true,
-      index: true
-    },
-
+    ownerId: { type: schema.Types.ObjectId, ref: "driver", required: true, index: true },
     ownerType: {
       type: String,
-      enum: ["user", "driver", "agency"],
+      enum: ["individual", "agency"],
       required: true,
       index: true
     },

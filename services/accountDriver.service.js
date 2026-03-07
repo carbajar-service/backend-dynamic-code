@@ -145,7 +145,7 @@ module.exports.updateProfileStatus = async (loggedInDriver, body) => {
             if (!profile.vehiclesId || profile.vehiclesId.length === 0) {
                 throw new AppError(400, "Add at least one vehicle to complete profile");
             }
-            if (!profile.documentIds || profile.documentIds.length === 0) {
+            if (!profile.documentId || profile.documentId.length === 0) {
                 throw new AppError(400, "Upload required documents to complete profile");
             }
         }
@@ -237,7 +237,7 @@ module.exports.getProfile = async (loggedInDriver) => {
             ]
         },
         {
-            path: "documentIds",
+            path: "documentId",
             select: [
                 "_id",
                 "documentType",

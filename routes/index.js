@@ -10,6 +10,7 @@ const accountAgencyRouter = require("./accountAgency");
 const accountRouter = require("./accountUser");
 const walletRouter = require("./wallet");
 const leadRouter = require("./lead");
+const bankRouter = require("./bank.routes");
 
 const routes = (app) => {
   app.use("/auth", authRouter);
@@ -24,6 +25,7 @@ const routes = (app) => {
   app.use("/account", accountRouter);
   app.use("/wallet", walletRouter);
   app.use("/lead", leadRouter);
+  app.use("/bank", bankRouter);
 };
 
 module.exports = routes;
