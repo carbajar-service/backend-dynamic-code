@@ -49,7 +49,6 @@ module.exports.createLead = async (body) => {
             throw new AppError(400, `${field} is required`);
         }
     }
-
     const payloadData = {
         tripType: body.tripType,
         locations: body.locations,
