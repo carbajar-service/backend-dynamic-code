@@ -32,5 +32,8 @@ driverRouter.route("/driverhistory")
 driverRouter.route("/earning")
     .get(verifyJWT, authorizePermissions("driver", "individual", "agency"), catchError(driverController.getDriverEarnings));
 
+driverRouter.route("/storeFcmToken").post(catchError(driverController.storeFcmToken));
+driverRouter.route("/getMyNotifications").get(verifyJWT, catchError(driverController.getMyNotifications));
+
 
 module.exports = driverRouter;

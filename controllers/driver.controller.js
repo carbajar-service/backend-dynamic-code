@@ -26,6 +26,21 @@ module.exports.driverRefreshOtp = async (req, res) => {
     return responser.send(200, "successfully refresh otp sent driver", req, res, data);
 };
 
+// firebase
+module.exports.storeFcmToken = async (req, res) => {
+    const reqData = req.body;
+    const data = await driverService.storeFcmToken(reqData);
+    logger.info(data);
+    return responser.send(200, `Successfully Stored FcmToken`, req, res, data);
+};
+
+// Get all notification
+module.exports.getMyNotifications = async (req, res) => {
+    const result = await driverService.getMyNotifications(req.driver);
+    logger.info(result);
+    return responser.send(200, "Successfully Notification Fetched", req, res, result);
+};
+
 module.exports.getDriverMatchingLeads = async (req, res) => {
     logger.info("Get Driver Matching Leads");
     const loggedIn = req.driver;

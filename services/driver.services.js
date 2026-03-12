@@ -13,6 +13,8 @@ const accountAgencyService = require("./accountAgency.service");
 const leadService = require("./lead.service");
 const vehicleService = require("./vehicle.service");
 const LeadModel = require("../models/lead.model");
+const firebaseModel = require("../models/firebase.model");
+const notificationModel = require("../models/notification.model");
 
 module.exports.updateRecord = async (condition, body) => {
     const option = { new: true, runValidators: true };
@@ -173,6 +175,74 @@ module.exports.refreshOtp = async (body) => {
     record.phoneOTPExpiresAt = undefined;
     logger.info(`OTP refreshed for ${body.phoneNumber}`);
     return `Successfully refreshed OTP sent to ${body.phoneNumber}!`;
+};
+
+// firebase fcmToken
+module.exports.storeFcmToken = async (body) => {
+    logger.info(`Starting Storing Fcm Token`);
+
+    if (!body.ownerId || !body.fcmToken) {
+        throw new AppError(400, "OwnerId and fcmToken are required.");
+    }
+    const allowedDeviceTypes = ["android", "ios", "web", "unknown"];
+    const deviceType = allowedDeviceTypes.includes(body.deviceType) ? body.deviceType : "unknown";
+    const owner = await driverModel.findOne({ _id: body.ownerId });
+    if (!owner) throw new AppError(404, "OwnerId Not Found");
+    let tokenDoc = await firebaseModel.findOne({
+        ownerId: owner._id, fcmToken: body.fcmToken
+    });
+
+    if (!tokenDoc) {
+        tokenDoc = await firebaseModel.create({
+            ownerId: owner._id,
+            fcmToken: body.fcmToken,
+            deviceType,
+            updatedAt: new Date()
+        });
+    } else {
+        let updated = false;
+        if (tokenDoc.deviceType !== deviceType) {
+            tokenDoc.deviceType = deviceType;
+            updated = true;
+        }
+        tokenDoc.updatedAt = new Date();
+        if (updated) await tokenDoc.save();
+    }
+    return tokenDoc;
+};
+
+module.exports.getUserFcmTokens = async (ownerId) => {
+    const tokens = await firebaseModel.find({ ownerId });
+    return tokens.map(t => t.fcmToken);
+};
+
+// notification model implement
+// get My Notifications for user
+module.exports.getMyNotifications = async (loggedIn) => {
+    if (!loggedIn?._id) throw new AppError(401, "Unauthorized Access");
+
+    // condition to fetch notifications for this user
+    const condition = {
+        ownerId: loggedIn._id
+    };
+
+    // populate queries (adjust according to your schema)
+    const populateQuery = [
+        {
+            path: "ownerId",
+            select: ["_id", "username", "email"]
+        }
+    ];
+
+    // fetch notifications
+    const notifications = await notificationModel.find(condition)
+        .populate(populateQuery)
+        .sort({ createdAt: -1 })
+        .select("-responses -tokens -successCount -failureCount");
+
+    if (!notifications || notifications.length === 0)
+        throw new AppError(404, "No Notifications Found");
+    return notifications;
 };
 
 module.exports.getDriverMatchingLeads = async (loggedInDriver) => {
