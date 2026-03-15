@@ -43,7 +43,7 @@ module.exports.generateUniqueUsername = (data) => {
     return `${data}${uuidv4().toUpperCase().replace(/-/g, "").substring(0, 9)}`;
 };
 
-module.exports = function generateVoucher(prefix) {
+module.exports.generateVoucher=(prefix)=> {
     const random = Math.random()
         .toString(36)
         .substring(2, 8)

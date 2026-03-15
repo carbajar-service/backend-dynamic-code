@@ -59,7 +59,6 @@ module.exports.sendPushNotificationToMultiple = async (fcmTokens, title, body, d
       responses: response.responses,
       type: data.type,
       ownerId: data.ownerId,
-      image: data?.image
     });
     return { response, savedNotification };
   } catch (err) {

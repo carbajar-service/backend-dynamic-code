@@ -2,6 +2,8 @@ const LeadModel = require("../models/lead.model");
 const logger = require("../utils/logs");
 const AppError = require("../utils/appError");
 const APIFeatures = require("../utils/apiFeature");
+const appEventEmitter = require("../utils/eventEmitter");
+const { EVENTS } = require("../utils/events");
 
 // Create Record
 module.exports.createRecord = async (object) => {
@@ -73,6 +75,16 @@ module.exports.createLead = async (body) => {
         { path: "updatedBy", select: ["_id", "username", "accountType"] }
     ];
     const leadRecord = await this.findOneRecord({ _id: record._id }, "-rejectionHistory -cancellationHistory -__v -adminSeen", populateQuery);
+    /**
+    * 🔔 EMIT EVENT ONLY WHEN PROFILE IS COMPLETED
+    */
+   logger.info(`Listeners for LEAD_CREATED: ${appEventEmitter.listenerCount(EVENTS.LEAD_CREATED)}`);
+    appEventEmitter.emit(EVENTS.LEAD_CREATED, {
+        leadRecord: leadRecord,
+        source: "system",
+        timestamp: new Date()
+    });
+    logger.info("emit")
     return leadRecord;
 };
 
