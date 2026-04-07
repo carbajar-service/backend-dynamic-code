@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Razorpay Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body style="font-family: Arial; padding: 40px;">
+
+    <h2>Wallet Topup Test</h2>
+
+    <input type="number" id="amount" placeholder="Enter amount" />
+    <button onclick="payNow()">Pay Now</button>
+
+    <script>
+        async function payNow() {
+            const amount = document.getElementById("amount").value;
+
+            if (!amount || amount <= 0) {
+                alert("Enter valid amount");
+                return;
+            }
+
+            // 🔥 Step 1: Create order from backend
+            const orderRes = await fetch("http://localhost:4001/payment/topup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDRmYTA2ZjU4MGFlYWQ1NzgxODE0NiIsImlhdCI6MTc3NTU2NjM2OSwiZXhwIjoxNzc1NjUyNzY5LCJpc3MiOiJkb2NrZXIuZGV2LnNpcmFqIn0.suRci7cH79QaCp91Gg8AlSx5UC8gPBMfpc45bwjVxy8"
+                },
+                body: JSON.stringify({ amount })
+            });
+
+            const orderData = await orderRes.json();
+
+            console.log("Order:", orderData);
+
+            // 🔥 Step 2: Open Razorpay checkout
+            const options = {
+                key: "rzp_test_SaXKaNzMLEaXTh", // from Razorpay dashboard
+                amount: orderData.data.amount,
+                currency: "INR",
+                name: "Wallet Topup",
+                description: "Test Payment",
+                order_id: orderData.data.id,
+
+                handler: async function (response) {
+                    console.log("Payment Success:", response);
+
+                    // 🔥 Step 3: Verify payment
+                    const verifyRes = await fetch("http://localhost:4001/payment/verify", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDRmYTA2ZjU4MGFlYWQ1NzgxODE0NiIsImlhdCI6MTc3NTU2NjM2OSwiZXhwIjoxNzc1NjUyNzY5LCJpc3MiOiJkb2NrZXIuZGV2LnNpcmFqIn0.suRci7cH79QaCp91Gg8AlSx5UC8gPBMfpc45bwjVxy8"
+                        },
+                        body: JSON.stringify(response)
+                    });
+
+                    const verifyData = await verifyRes.json();
+
+                    console.log("Verify Response:", verifyData);
+                    alert("Payment Successful & Wallet Updated");
+                },
+
+                prefill: {
+                    name: "Test User",
+                    email: "test@test.com",
+                    contact: "9999999999"
+                },
+
+                theme: {
+                    color: "#3399cc"
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        }
+    </script>
+
+</body>
+</html>

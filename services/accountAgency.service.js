@@ -82,8 +82,8 @@ module.exports.createAccount = async (body, loggedInAgency) => {
     const record = await this.createRecord(payloadData);
     // TODO Create the wallet of the user
     const walletPayload = {
-        accountagencyId: record?._id,
-        accountType: "driver"
+        ownerId: loggedInAgency._id,
+        accountType: "agency"
     }
     await walletService.createWallet(walletPayload, walletId);
     await driverService.updateRecord({ _id: loggedInAgency._id }, { accountId: record._id })

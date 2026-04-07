@@ -7,10 +7,9 @@ const accountDriverModel = require("./accountDriver.model");
 
 const walletSchema = new schema(
     {
-        accountUserId: { type: schema.Types.ObjectId, ref: "accountUser" },
-        accountDriverId: { type: schema.Types.ObjectId, ref: "accountDriver" },
+        ownerId: { type: schema.Types.ObjectId, ref: "driver" },
         balance: { type: Number, default: 0 }, // Current balance
-        accountType: { type: String, enum: ["driver", "user"] }
+        accountType: { type: String, enum: ["individual", "user", "agency"] }
     },
     { timestamps: true }
 );

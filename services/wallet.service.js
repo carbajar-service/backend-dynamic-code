@@ -2,9 +2,9 @@ const walletModel = require("../models/wallet.model");
 const logger = require("../utils/logs");
 const AppError = require("../utils/appError");
 const APIFeatures = require("../utils/apiFeature");
-const accountDriverService = require("./accountDriver.service");
-// const { sendPushNotificationToMultiple } = require("../utils/firebase/sendPushNotification");
-// const { getUserFcmTokens } = require("./auth.service");
+const driverModel = require("../models/driver.model");
+const WalletTxn = require("../models/WalletTransaction");
+const mongoose = require("mongoose");
 
 module.exports.createRecord = async (object) => {
     const record = await walletModel.create(object);
@@ -32,8 +32,7 @@ module.exports.createWallet = async (data, id) => {
     const payload = {
         _id: id,
     }
-    if (data.accountDriverId) payload.accountDriverId = data.accountDriverId;
-    if (data.accountUserId) payload.accountUserId = data.accountUserId;
+    if (data.ownerId) payload.ownerId = data.ownerId;
     if (data.accountType) payload.accountType = data.accountType;
     const wallet = await this.createRecord(payload);
     return wallet;
@@ -41,19 +40,15 @@ module.exports.createWallet = async (data, id) => {
 
 // get My wallet for user
 module.exports.getMyWalletByDriver = async (loggedIn) => {
-    const account = await accountDriverService.findOneRecord({ driverId: loggedIn?._id });
-    if (!account) throw new AppError(404, `Account Not Found.For This ${loggedIn?._id} Id`);
+    const account = await driverModel.findOne({ _id: loggedIn?._id });
+    if (!account) throw new AppError(404, `Wallet Not Found.For This ${loggedIn?._id} Id`);
     const condition = {
-        accountDriverId: account?._id
+        ownerId: loggedIn?._id
     }
     const populateQuery = [
         {
-            path: "accountDriverId",
-            select: ["_id", "firstName", "lastName", "profilePicture", "driverId"],
-            populate: {
-                path: "driverId",
-                select: ["_id", "username", "email", "phoneNumber"] // adjust fields as needed
-            }
+            path: "ownerId",
+            select: ["_id", "username", "email", "phoneNumber"],
         }
     ];
     const wallet = await this.findOneRecord(condition, "-__v", populateQuery);
@@ -61,32 +56,122 @@ module.exports.getMyWalletByDriver = async (loggedIn) => {
     return wallet;
 }
 
-// get all wallet for admin
-module.exports.getAllWalletsByAdmin = async (query) => {
-    const populateQuery = [
-        {
-            path: "promotionIds",
-            select: ["_id", "compensation", "location", "brandLogo", "brandNiche", "brandName"],
-            options: { sort: { compensation: -1 } }
-        },
-        {
-            path: "accountId",
-            select: ["_id", "firstName", "lastName", "profilePicture", "userId"],
-            populate: {
-                path: "userId",
-                select: ["_id", "username", "email", "phoneNumber"] // adjust fields as needed
-            }
-        }
-    ];
-
-    // Fetch all wallets
-    const wallets = await walletModel.find({}, "-__v").populate(populateQuery);
-    if (!wallets || wallets.length === 0) {
-        throw new AppError(404, "No wallets found");
+exports.creditWallet = async (userId, amount, source = "admin") => {
+    if (!amount || amount <= 0) {
+        throw new Error("Invalid amount");
     }
-    return wallets;
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const wallet = await walletModel.findOne({ userId }).session(session);
+        if (!wallet) throw new Error("Wallet not found");
+
+        wallet.balance += amount;
+        await wallet.save({ session });
+
+        await WalletTxn.create([{
+            userId,
+            amount,
+            type: "credit",
+            source,
+            status: "success",
+            balanceAfter: wallet.balance
+        }], { session });
+
+        await session.commitTransaction();
+        return wallet;
+
+    } catch (err) {
+        await session.abortTransaction();
+        throw err;
+    } finally {
+        session.endSession();
+    }
 };
 
+exports.debitWallet = async (ownerId, amount, source = "manual") => {
+    if (!amount || amount <= 0) {
+        throw new Error("Invalid amount");
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const wallet = await walletModel.findOne({ ownerId }).session(session);
+        if (!wallet) throw new Error("Wallet not found");
+
+        if (wallet.balance < amount) {
+            throw new Error("Insufficient balance");
+        }
+
+        wallet.balance -= amount;
+        await wallet.save({ session });
+
+        await WalletTxn.create([{
+            userId,
+            amount,
+            type: "debit",
+            source,
+            status: "success",
+            balanceAfter: wallet.balance
+        }], { session });
+
+        await session.commitTransaction();
+        return wallet;
+
+    } catch (err) {
+        await session.abortTransaction();
+        throw err;
+    } finally {
+        session.endSession();
+    }
+};
+
+exports.getTransactions = async (ownerId, page = 1, limit = 20) => {
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 20;
+
+    if (page < 1) page = 1;
+    if (limit < 1 || limit > 100) limit = 20;
+
+    const skip = (page - 1) * limit;
+
+    const result = await WalletTxn.aggregate([
+        {
+            $match: { ownerId: new mongoose.Types.ObjectId(ownerId) }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $facet: {
+                data: [
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [
+                    { $count: "count" }
+                ]
+            }
+        }
+    ]);
+
+    const data = result[0].data;
+    const total = result[0].totalCount[0]?.count || 0;
+
+    return {
+        data,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    };
+};
 
 // admin can increance the balance amount
 module.exports.updatedWalletBalance = async (body) => {
