@@ -25,8 +25,8 @@ const leadSchema = new schema(
         createdDate: { type: String }, // If this is a user-input display date
         leadStatus: {
             type: String,
-            enum: ["NEW-LEAD", "CONFIRMED", "CANCELLED", "COMPLETED", "STARTED"],
-            default: "NEW-LEAD"
+            enum: ["PENDING_PAYMENT", "NEW-LEAD", "CONFIRMED", "CANCELLED", "COMPLETED", "STARTED"],
+            default: "PENDING_PAYMENT"
         },
         showFlag: { type: Boolean, default: false },
         uniqueLeadName: { type: String, unique: true },
@@ -42,7 +42,7 @@ const leadSchema = new schema(
             },
             assignType: {
                 type: String,
-                enum: ["auto", "manual","admin"],
+                enum: ["auto", "manual", "admin"],
                 default: "auto"
             }
         },
@@ -60,7 +60,23 @@ const leadSchema = new schema(
                 cancelledBy: { type: schema.Types.ObjectId, ref: "users" },
                 cancelledAt: { type: Date, default: Date.now }
             }
-        ]
+        ],
+        payments: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "paymentLead"
+        }],
+        totalPaidAmount: {
+            type: Number,
+            default: 0
+        },
+        pendingAmount: {
+            type: Number,
+            default: 0
+        },
+        isFullyPaid: {
+            type: Boolean,
+            default: false
+        }
     },
     { timestamps: true }
 );

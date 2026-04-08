@@ -61,11 +61,12 @@ module.exports.createLead = async (body) => {
         vehicleType: body.vehicleType,
         userCity: body.locations[0],
         adminSeen: false,
-        leadStatus: "NEW-LEAD",
+        leadStatus: "PENDING_PAYMENT",
         createdBy: body.userId,
         updatedBy: body.userId,
         userId: body.userId,
         uniqueLeadName: this.generateLeadId(),
+        pendingAmount: body.totalAmount
     };
     const record = await this.createRecord(payloadData);
     logger.info(`Lead Created: ${record._id}`);
@@ -78,7 +79,7 @@ module.exports.createLead = async (body) => {
     /**
     * 🔔 EMIT EVENT ONLY WHEN PROFILE IS COMPLETED
     */
-   logger.info(`Listeners for LEAD_CREATED: ${appEventEmitter.listenerCount(EVENTS.LEAD_CREATED)}`);
+    logger.info(`Listeners for LEAD_CREATED: ${appEventEmitter.listenerCount(EVENTS.LEAD_CREATED)}`);
     appEventEmitter.emit(EVENTS.LEAD_CREATED, {
         leadRecord: leadRecord,
         source: "system",
