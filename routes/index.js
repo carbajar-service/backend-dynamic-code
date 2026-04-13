@@ -12,6 +12,7 @@ const walletRouter = require("./wallet");
 const leadRouter = require("./lead");
 const bankRouter = require("./bank.routes");
 const paymentRouter = require("./payment");
+const cityRouter = require("./city");
 
 const routes = (app) => {
   app.use("/auth", authRouter);
@@ -28,6 +29,7 @@ const routes = (app) => {
   app.use("/lead", leadRouter);
   app.use("/bank", bankRouter);
   app.use("/payment", paymentRouter);
+  app.use("/city", cityRouter);
 };
 
 module.exports = routes;

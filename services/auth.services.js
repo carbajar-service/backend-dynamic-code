@@ -5,7 +5,8 @@ const bcrypt = require("bcryptjs");
 const userService = require("./user.services");
 const tokenService = require("../middlewares/token");
 const { generateOTP, generateUniqueUsername } = require('../utils/utils');
-const sms = require('./sms/fast2sms');
+const sms = require('./sms/saakshiSms');
+// const sms = require('./sms/fast2sms');
 
 // user register
 module.exports.createRegister = async (body) => {
@@ -21,7 +22,7 @@ module.exports.createRegister = async (body) => {
             { _id: isPhoneNumberExists.id },
             { phoneOTP: generateOTP() }
         );
-        await sms.smsOTPV2(resentOtp);
+        sms.smsOTPV2(resentOtp);
         logger.info(resentOtp);
         isPhoneNumberExists.phoneOTP = undefined;
         return isPhoneNumberExists;

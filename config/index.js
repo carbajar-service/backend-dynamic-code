@@ -23,4 +23,12 @@ module.exports = {
     // RAZORPAY
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+    // sms
+    SMS_USER: process.env.SMS_USER,
+    SMS_PASSWORD: process.env.SMS_PASSWORD,
+    SMS_SENDER: process.env.SMS_SENDER,
+    SMS_CHANNEL: process.env.SMS_CHANNEL,
+    SMS_ROUTE: process.env.SMS_ROUTE,
+    SMS_OTP_TEMPLATE_ID: process.env.SMS_OTP_TEMPLATE_ID,
+    SMS_PEID: process.env.SMS_PEID,
 }
