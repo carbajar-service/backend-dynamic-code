@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const config = require("../../config/index");
 const mongoose = require("mongoose");
 const AppError = require("../../utils/appError");
+const logger = require("../../utils/logs");
 
 // ✅ Create Order
 exports.createLeadOrder = async (userId, leadId, amount, stage) => {
@@ -163,4 +164,54 @@ exports.verify = async (data) => {
     } finally {
         session.endSession();
     }
+};
+
+/* =====================================================
+   3️⃣ GET MY PAYMENT HISTORY
+===================================================== */
+module.exports.getMyPayments = async (userId) => {
+    logger.info("START: Get My Payments");
+    const condition = {
+        userId: new mongoose.Types.ObjectId(userId)
+    };
+    const payments = await paymentLead
+        .find(condition)
+        .populate([
+            { path: "leadId", select: ["_id", "totalAmount", "status"] },
+            { path: "userId", select: ["_id", "username", "email"] }
+        ])
+        .sort({ createdAt: -1 });
+
+    return payments;
+};
+
+/* =====================================================
+   4️⃣ GET SINGLE PAYMENT
+===================================================== */
+module.exports.getSinglePayment = async (paymentId) => {
+    logger.info("START: Get Single Payment");
+    if (!paymentId) throw new AppError(400, "Payment ID required");
+    const payment = await paymentLead
+        .findById(paymentId)
+        .populate([
+            { path: "leadId", select: ["_id", "totalAmount", "status"] },
+            { path: "userId", select: ["_id", "username", "email"] }
+        ]);
+    if (!payment) throw new AppError(404, "Payment not found");
+    return payment;
+};
+
+/* =====================================================
+   5️⃣ ADMIN - GET ALL PAYMENTS
+===================================================== */
+module.exports.getAllPaymentsAdmin = async (query) => {
+    logger.info("START: Get All Payments (Admin)");
+    const payments = await paymentLead
+        .find()
+        .populate([
+            { path: "leadId", select: ["_id", "price", "status"] },
+            { path: "userId", select: ["_id", "username", "email"] }
+        ])
+        .sort({ createdAt: -1 });
+    return payments;
 };

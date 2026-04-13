@@ -38,3 +38,46 @@ module.exports.verifyLeadPayment = async (req, res) => {
         data
     );
 };
+
+/* =====================================================
+   3️⃣ GET MY PAYMENT HISTORY
+===================================================== */
+module.exports.getMyPayments = async (req, res) => {
+    logger.info("getMyPayments");
+
+    const user = req.user;
+    const query = req.query;
+
+    const data = await leadPaymentService.getMyPayments(user, query);
+
+    logger.data("Fetched user payments", data);
+    return responser.send(200, "Payments fetched successfully", req, res, data);
+};
+
+/* =====================================================
+   4️⃣ GET SINGLE PAYMENT
+===================================================== */
+module.exports.getSinglePayment = async (req, res) => {
+    logger.info("getSinglePayment");
+
+    const { paymentId } = req.params;
+
+    const data = await leadPaymentService.getSinglePayment(paymentId);
+
+    logger.data("Fetched single payment", data);
+    return responser.send(200, "Payment fetched successfully", req, res, data);
+};
+
+/* =====================================================
+   5️⃣ ADMIN - GET ALL PAYMENTS
+===================================================== */
+module.exports.getAllPaymentsAdmin = async (req, res) => {
+    logger.info("getAllPaymentsAdmin");
+
+    const query = req.query;
+
+    const data = await leadPaymentService.getAllPaymentsAdmin(query);
+
+    logger.data("Fetched all payments (admin)", data);
+    return responser.send(200, "All payments fetched successfully", req, res, data);
+};

@@ -55,11 +55,14 @@ module.exports.updateCity = async (cityId, data) => {
 // DELETE (SOFT DELETE — correct way)
 module.exports.deleteCity = async (cityId) => {
     logger.info("START: Delete City");
-    const city = await cityModel.findByIdAndUpdate(
+    const city = await cityModel.findByIdAndDelete(
         cityId,
-        { isActive: false },
-        { new: true }
     );
+    // const city = await cityModel.findByIdAndUpdate(
+    //     cityId,
+    //     { isActive: false },
+    //     { new: true }
+    // );
     if (!city) throw new AppError(404, "City not found");
     return true;
 };

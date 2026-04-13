@@ -11,14 +11,25 @@ paymentRouter
     .route("/verify")
     .post(authorized.verifyJWT, catchError(paymentController.verifyPayment));
 
-
 // lead payment 
 paymentRouter.route("/lead/createLeadOrder")
     .post(authorized.verifyJWT, catchError(leadPaymentController.createLeadPayment));
 paymentRouter
     .route("/lead/verifyLead")
     .post(authorized.verifyJWT, catchError(leadPaymentController.verifyLeadPayment));
+// MY PAYMENTS
+paymentRouter
+    .route("/lead/myPayments")
+    .get(authorized.verifyJWT, catchError(leadPaymentController.getMyPayments));
 
+// SINGLE PAYMENT
+paymentRouter
+    .route("/lead/single/:paymentId")
+    .get(authorized.verifyJWT, catchError(leadPaymentController.getSinglePayment));
 
+// ADMIN ALL PAYMENTS
+paymentRouter
+    .route("/admin/lead-payment/all")
+    .get(authorized.verifyJWT, catchError(leadPaymentController.getAllPaymentsAdmin));
 
 module.exports = paymentRouter;
